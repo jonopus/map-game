@@ -26,9 +26,10 @@ function rotate(point, orientation){
 	
 	var
 	x = point.x,
-	z = point.y,
-	y = -x-z,
-	
+	y = point.y,
+	z = -point.x-point.y;
+
+	var
 	_x,
 	_y,
 	_z;
@@ -38,24 +39,29 @@ function rotate(point, orientation){
 			return point;
 			break;
 		case Orientation.YP:
-			_x = -z;
-			_y = -x;
-			_z = -y;
-			return point;
+			_x = -y;
+			_y = -z;
+			_z = -x;
 			break;
 		case Orientation.ZP:
-			return point;
+			_x = z;
+			_y = x;
+			_z = y;
 			break;
 		case Orientation.XM:
+			_x = -x;
+			_y = -y;
+			_z = -z;
+			break;
+		case Orientation.YM:
+			_x = y;
+			_y = z;
+			_z = x;
+			break;
+		case Orientation.ZM:
 			_x = -z;
 			_y = -x;
 			_z = -y;
-			break;
-		case Orientation.YM:
-			return point;
-			break;
-		case Orientation.ZM:
-			return point;
 			break;
 	}
 

@@ -6,13 +6,11 @@ function Grid() {
 
 Grid.prototype.addRegions = addRegions;
 function addRegions(regions){
-	console.log('Grid', 'addRegions', regions);
 	this.regions = this.regions.concat(regions);
 }
 
 Grid.prototype.addRegion = addRegion;
 function addRegion(region){
-	console.log('Grid', 'addRegion', region);
 	this.regions.push(region);
 }
 

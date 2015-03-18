@@ -11,10 +11,15 @@ function App(){
 	console.log('App');
 
 	var grid = new Grid();
-
-	//grid.addRegions(new Tile(Region.XX, 2, 4, Orientation.XP).getRegions());
-	//grid.addRegions(new Tile(Region.XX, 2, 4, Orientation.YP).getRegions());
-	//grid.addRegions(new Tile(Region.XX, 2, 4, Orientation.XM).getRegions());
+	
+	/*
+	grid.addRegions(new Tile(Region.O3, 2, 4, Orientation.XP).getRegions());
+	grid.addRegions(new Tile(Region.O3, 2, 4, Orientation.YP).getRegions());
+	grid.addRegions(new Tile(Region.O3, 2, 4, Orientation.ZP).getRegions());
+	grid.addRegions(new Tile(Region.O3, 2, 4, Orientation.XM).getRegions());
+	grid.addRegions(new Tile(Region.O3, 2, 4, Orientation.YM).getRegions());
+	grid.addRegions(new Tile(Region.O3, 2, 4, Orientation.ZM).getRegions());
+	*/
 	
 	grid.addRegions(new Tile(Region.O3, 0, 4).getRegions());
 	grid.addRegions(new Tile(Region.O2, 4, 4).getRegions());
@@ -23,8 +28,6 @@ function App(){
 	grid.addRegions(new Tile(Region.C3, 0, 8).getRegions());
 	grid.addRegions(new Tile(Region.C2, 4, 8).getRegions());
 	grid.addRegions(new Tile(Region.C1, 8, 8).getRegions());
-	/*
-	*/
 	
 	new Renderer('mapCanvas').render(grid);
 }

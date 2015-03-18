@@ -12,10 +12,15 @@ function App(){
 	console.log('App');
 
 	var grid = new Grid();
-
-	//grid.addRegions(new Tile(Region.XX, 2, 4, Orientation.XP).getRegions());
-	//grid.addRegions(new Tile(Region.XX, 2, 4, Orientation.YP).getRegions());
-	//grid.addRegions(new Tile(Region.XX, 2, 4, Orientation.XM).getRegions());
+	
+	/*
+	grid.addRegions(new Tile(Region.O3, 2, 4, Orientation.XP).getRegions());
+	grid.addRegions(new Tile(Region.O3, 2, 4, Orientation.YP).getRegions());
+	grid.addRegions(new Tile(Region.O3, 2, 4, Orientation.ZP).getRegions());
+	grid.addRegions(new Tile(Region.O3, 2, 4, Orientation.XM).getRegions());
+	grid.addRegions(new Tile(Region.O3, 2, 4, Orientation.YM).getRegions());
+	grid.addRegions(new Tile(Region.O3, 2, 4, Orientation.ZM).getRegions());
+	*/
 	
 	grid.addRegions(new Tile(Region.O3, 0, 4).getRegions());
 	grid.addRegions(new Tile(Region.O2, 4, 4).getRegions());
@@ -24,8 +29,6 @@ function App(){
 	grid.addRegions(new Tile(Region.C3, 0, 8).getRegions());
 	grid.addRegions(new Tile(Region.C2, 4, 8).getRegions());
 	grid.addRegions(new Tile(Region.C1, 8, 8).getRegions());
-	/*
-	*/
 	
 	new Renderer('mapCanvas').render(grid);
 }
@@ -42,13 +45,11 @@ function Grid() {
 
 Grid.prototype.addRegions = addRegions;
 function addRegions(regions){
-	console.log('Grid', 'addRegions', regions);
 	this.regions = this.regions.concat(regions);
 }
 
 Grid.prototype.addRegion = addRegion;
 function addRegion(region){
-	console.log('Grid', 'addRegion', region);
 	this.regions.push(region);
 }
 
@@ -85,9 +86,10 @@ function rotate(point, orientation){
 	
 	var
 	x = point.x,
-	z = point.y,
-	y = -x-z,
-	
+	y = point.y,
+	z = -point.x-point.y;
+
+	var
 	_x,
 	_y,
 	_z;
@@ -97,24 +99,29 @@ function rotate(point, orientation){
 			return point;
 			break;
 		case Orientation.YP:
-			_x = -z;
-			_y = -x;
-			_z = -y;
-			return point;
+			_x = -y;
+			_y = -z;
+			_z = -x;
 			break;
 		case Orientation.ZP:
-			return point;
+			_x = z;
+			_y = x;
+			_z = y;
 			break;
 		case Orientation.XM:
+			_x = -x;
+			_y = -y;
+			_z = -z;
+			break;
+		case Orientation.YM:
+			_x = y;
+			_y = z;
+			_z = x;
+			break;
+		case Orientation.ZM:
 			_x = -z;
 			_y = -x;
 			_z = -y;
-			break;
-		case Orientation.YM:
-			return point;
-			break;
-		case Orientation.ZM:
-			return point;
 			break;
 	}
 
@@ -132,66 +139,66 @@ function Region(x, y, xp, yp, zp, xm, ym, zm, claimable) {
 }
 
 Region.O3 = [
-	new Region(0,0,	false,	false,	false,	false,	false,	false,		false),
-	new Region(1,0,	false,	true,	true,	false,	true,	false,		false),
-	new Region(2,0,	false,	false,	false,	false,	false,	false,		false),
-	new Region(0,1,	false,	false,	true,	false,	false,	true,		false),
-	new Region(1,1,	true,	false,	false,	false,	true,	false,		false),
-	new Region(0,2,	false,	false,	false,	false,	false,	false,		false)
+	new Region(1,0,	false,	false,	false,	false,	false,	false,		false),
+	new Region(2,0,	false,	true,	true,	false,	true,	false,		false),
+	new Region(3,0,	false,	false,	false,	false,	false,	false,		false),
+	new Region(1,1,	false,	false,	true,	false,	false,	true,		false),
+	new Region(2,1,	true,	false,	false,	false,	true,	false,		false),
+	new Region(1,2,	false,	false,	false,	false,	false,	false,		false)
 ];
 
 Region.O2 = [
-	new Region(0,0,	true,	false,	false,	false,	true,	false,		false),
-	new Region(1,0,	true,	true,	true,	true,	false,	false,		false),
-	new Region(2,0,	false,	false,	false,	true,	true,	false,		false),
-	new Region(0,1,	false,	false,	true,	false,	false,	true,		false),
-	new Region(1,1,	true,	false,	false,	false,	true,	false,		false),
-	new Region(0,2,	false,	false,	false,	false,	false,	false,		false)
+	new Region(1,0,	true,	false,	false,	false,	true,	false,		false),
+	new Region(2,0,	true,	true,	true,	true,	false,	false,		false),
+	new Region(3,0,	false,	false,	false,	true,	true,	false,		false),
+	new Region(1,1,	false,	false,	true,	false,	false,	true,		false),
+	new Region(2,1,	true,	false,	false,	false,	true,	false,		false),
+	new Region(1,2,	false,	false,	false,	false,	false,	false,		false)
 ];
 
 Region.O1 = [
-	new Region(0,0,	true,	false,	true,	false,	false,	false,		false),
-	new Region(1,0,	true,	false,	true,	true,	true,	false,		false),
-	new Region(2,0,	true,	false,	false,	true,	false,	false,		false),
-	new Region(0,1,	false,	true,	false,	false,	false,	true,		false),
-	new Region(1,1,	false,	false,	false,	false,	false,	false,		false),
-	new Region(0,2,	true,	false,	true,	false,	true,	false,		false)
+	new Region(1,0,	true,	false,	true,	false,	false,	false,		false),
+	new Region(2,0,	true,	false,	true,	true,	true,	false,		false),
+	new Region(3,0,	true,	false,	false,	true,	false,	false,		false),
+	new Region(1,1,	false,	true,	false,	false,	false,	true,		false),
+	new Region(2,1,	false,	false,	false,	false,	false,	false,		false),
+	new Region(1,2,	true,	false,	true,	false,	true,	false,		false)
 ];
 
 Region.C3 = [
-	new Region(0,0,	false,	false,	true,	false,	true,	false,		false),
-	new Region(1,0,	false,	false,	false,	false,	false,	false,		false),
-	new Region(2,0,	true,	false,	false,	false,	true,	false,		false),
-	new Region(0,1,	false,	false,	false,	false,	false,	false,		false),
+	new Region(1,0,	false,	false,	true,	false,	true,	false,		false),
+	new Region(2,0,	false,	false,	false,	false,	false,	false,		false),
+	new Region(3,0,	true,	false,	false,	false,	true,	false,		false),
 	new Region(1,1,	false,	false,	false,	false,	false,	false,		false),
-	new Region(0,2,	true,	false,	true,	false,	false,	false,		false)
+	new Region(2,1,	false,	false,	false,	false,	false,	false,		false),
+	new Region(1,2,	true,	false,	true,	false,	false,	false,		false)
 ];
 
 Region.C2 = [
-	new Region(0,0,	true,	false,	true,	false,	false,	false,		false),
-	new Region(1,0,	true,	false,	false,	true,	true,	false,		false),
-	new Region(2,0,	true,	false,	false,	true,	false,	false,		false),
-	new Region(0,1,	false,	false,	false,	false,	false,	false,		false),
+	new Region(1,0,	true,	false,	true,	false,	false,	false,		false),
+	new Region(2,0,	true,	false,	false,	true,	true,	false,		false),
+	new Region(3,0,	true,	false,	false,	true,	false,	false,		false),
 	new Region(1,1,	false,	false,	false,	false,	false,	false,		false),
-	new Region(0,2,	true,	false,	true,	false,	false,	false,		false)
+	new Region(2,1,	false,	false,	false,	false,	false,	false,		false),
+	new Region(1,2,	true,	false,	true,	false,	false,	false,		false)
 ];
 
 Region.C1 = [
-	new Region(0,0,	false,	true,	false,	false,	true,	false,		false),
-	new Region(1,0,	false,	false,	false,	false,	false,	false,		false),
-	new Region(2,0,	false,	false,	true,	false,	true,	false,		false),
-	new Region(0,1,	false,	false,	true,	false,	true,	false,		false),
-	new Region(1,1,	true,	false,	false,	false,	false,	true,		false),
-	new Region(0,2,	false,	false,	false,	false,	false,	false,		false)
+	new Region(1,0,	false,	true,	false,	false,	true,	false,		false),
+	new Region(2,0,	false,	false,	false,	false,	false,	false,		false),
+	new Region(3,0,	false,	false,	true,	false,	true,	false,		false),
+	new Region(1,1,	false,	false,	true,	false,	true,	false,		false),
+	new Region(2,1,	true,	false,	false,	false,	false,	true,		false),
+	new Region(1,2,	false,	false,	false,	false,	false,	false,		false)
 ];
 
 Region.XX = [
-	new Region(0,0,	true,	true,	true,	true,	true,	true,		false),
-	new Region(1,0,	false,	false,	false,	false,	false,	true,		false),
-	new Region(2,0,	false,	false,	true,	true,	false,	false,		false),
-	new Region(0,1,	false,	false,	false,	true,	false,	false,		false),
-	new Region(1,1,	false,	true,	false,	false,	false,	false,		false),
-	new Region(0,2,	false,	false,	false,	false,	true,	true,		false)
+	new Region(1,0,	true,	false,	true,	false,	true,	false,		false),
+	new Region(2,0,	false,	false,	false,	false,	true,	false,		false),
+	new Region(3,0,	false,	false,	false,	false,	true,	false,		false),
+	new Region(1,1,	false,	false,	true,	false,	false,	false,		false),
+	new Region(2,1,	true,	false,	false,	false,	false,	false,		false),
+	new Region(1,2,	true,	false,	false,	false,	false,	false,		false)
 ];
 
 },{"./Orientation.js":3}],5:[function(require,module,exports){
@@ -209,20 +216,19 @@ function Tile(regions, x, y, orientation) {
 
 Tile.prototype.getRegions = getRegions;
 function getRegions(){
-
-	console.log('Tile getRegions', this);
-
 	var tile = this;
 
 	var regions = $.map(this.regions, function(region, i){
-		var region = jQuery.extend({}, region);
+		
+		region = jQuery.extend({}, region);
 		var point = Orientation.rotate({x:region.x, y:region.y}, tile.orientation);
 
-		console.log('region', region);
-		console.log('point', point);
-		
 		region.x = point.x + tile.x;
 		region.y = point.y + tile.y;
+
+		var copy = region.l.slice(0);
+		var end = copy.splice(-tile.orientation.index, tile.orientation.index);
+		region.l = end.concat(copy);
 		
 		return region;
 	})
@@ -230,6 +236,8 @@ function getRegions(){
 	return regions;
 }
 },{"./Orientation.js":3,"./Region.js":4}],6:[function(require,module,exports){
+//var d3 = require('d3');
+
 var context;
 var scale = 50;
 var d2 = Math.sqrt(3);
@@ -252,10 +260,37 @@ var orthagonal = [
 
 module.exports = Renderer;
 function Renderer(selector) {
-	console.log('Renderer', selector);
+	console.log('Renderer');
 
 	var c = document.getElementById(selector);
 	context = c.getContext("2d");
+
+	/*
+	var vis = d3.select("body").append("svg")
+	.attr("width", 1000)
+	.attr("height", 667),
+
+	scaleX = d3.scale.linear()
+	.domain([-30,30])
+	.range([0,600]),
+
+	scaleY = d3.scale.linear()
+	.domain([0,50])
+	.range([500,0]),
+
+	poly = [{"x":0.0, "y":25.0},
+	{"x":8.5,"y":23.4},
+	{"x":13.0,"y":21.0},
+	{"x":19.0,"y":15.5}];
+
+	vis.selectAll("polygon")
+	.data([poly])
+	.enter().append("polygon")
+	.attr("points",function(d) { 
+		return d.map(function(d) { return [scaleX(d.x),scaleY(d.y)].join(","); }).join(" ");})
+	.attr("stroke","black")
+	.attr("stroke-width",2);
+	*/
 }
 
 Renderer.prototype.render = render;
@@ -270,6 +305,7 @@ function renderRegions(regions){
 }
 
 function renderRegion(region){
+
 	var x = ((region.x * d2) + (region.y * (d2*.5))) * scale;
 	var y = (region.y * scale)*1.5;
 	var cx = (d2*.5) * scale;

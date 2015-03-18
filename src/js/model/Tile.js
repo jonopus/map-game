@@ -12,20 +12,19 @@ function Tile(regions, x, y, orientation) {
 
 Tile.prototype.getRegions = getRegions;
 function getRegions(){
-
-	console.log('Tile getRegions', this);
-
 	var tile = this;
 
 	var regions = $.map(this.regions, function(region, i){
-		var region = jQuery.extend({}, region);
+		
+		region = jQuery.extend({}, region);
 		var point = Orientation.rotate({x:region.x, y:region.y}, tile.orientation);
 
-		console.log('region', region);
-		console.log('point', point);
-		
 		region.x = point.x + tile.x;
 		region.y = point.y + tile.y;
+
+		var copy = region.l.slice(0);
+		var end = copy.splice(-tile.orientation.index, tile.orientation.index);
+		region.l = end.concat(copy);
 		
 		return region;
 	})
