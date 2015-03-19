@@ -82,6 +82,8 @@ function getLiberties(regions, player, tileId, regionId){
 }
 
 function getNeighbor(regions, player, region, startRegion, fromOrientation){
+	console.log('getNeighbor');
+
 	var liberties = [];
 
 	var orientations = region.getOrientations(0);
@@ -107,9 +109,17 @@ function getNeighbor(regions, player, region, startRegion, fromOrientation){
 
 		neighbor.mapped = true;
 
+
 		if(neighbor.claimable){
 			if(!neighbor.claimed){
 				liberties.push(neighbor);
+			}else{
+				if(neighbor.claimed.player && neighbor.claimed.player === player){
+					liberties = liberties.concat(getNeighbor(regions, player, neighbor, startRegion, orientation));
+				}else if(neighbor.claimed.player && neighbor.claimed.player !== player){
+
+					console.log('enimieLiberties', getNeighbor(regions, neighbor.claimed.player, neighbor, neighbor).length);
+				}
 			}
 		}else{
 			liberties = liberties.concat(getNeighbor(regions, player, neighbor, startRegion, orientation));
