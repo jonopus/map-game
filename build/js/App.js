@@ -9570,16 +9570,27 @@ function handleRegionClicked(event, tileId, regionId) {
 
 	var regions = this.game.getRegions();
 
-	/*
-	var liberties = this.game.getLiberties(tileId, regionId)
+	var claims = player.getClaims();
+	
+	for (var c = claims.length - 1; c >= 0; c--) {
+		var claim = claims[c];
 
-	console.log('liberties.length', liberties.length);
+		for (var r = regions.length - 1; r >= 0; r--) {
+			var region = regions[r];
 
-	if(liberties.length){
-	}
-	*/
+			if (parseInt(region.tileId) === parseInt(claim.tileId) && parseInt(region.id) === parseInt(claim.regionId)) {
+				region.claim = player.id
+			}
+		};
+	};
 	
 	gameRenderer.render(regions);
+
+
+	var liberties = this.game.getLiberties(tileId, regionId)
+	console.log('liberties', liberties);
+	
+	gameRenderer.highlight(liberties);
 }
 },{"../model/Orientation.js":5,"../model/Player.js":6,"../model/Region.js":7,"../model/Tile.js":8}],4:[function(require,module,exports){
 module.exports = Game;
@@ -9606,6 +9617,21 @@ function getTile(tileId){
 	})[0];
 }
 
+/*
+
+Game.prototype.getClaaimedRegions = getClaaimedRegions;
+function getClaaimedRegions(){
+
+	var claims = [];
+
+	for (var i = this.players.length - 1; i >= 0; i--) {
+		var player = this.players[i];
+		claims = claims.concat(tile.getClaaimedRegions());
+	};
+	return claims;
+}
+*/
+
 Game.prototype.getRegions = getRegions;
 function getRegions(){
 
@@ -9614,24 +9640,6 @@ function getRegions(){
 	for (var i = this.tiles.length - 1; i >= 0; i--) {
 		var tile = this.tiles[i];
 		regions = regions.concat(tile.getRegions());
-	};
-
-	// set claim flag.
-	for (var p = this.players.length - 1; p >= 0; p--) {
-		var player = this.players[p];
-		var claims = player.getClaims();
-		
-		for (var c = claims.length - 1; c >= 0; c--) {
-			var claim = claims[c];
-
-			for (var r = regions.length - 1; r >= 0; r--) {
-				var region = regions[r];
-
-				if (parseInt(region.tileId) === parseInt(claim.tileId) && parseInt(region.id) === parseInt(claim.regionId)) {
-					region.claim = player.id
-				}
-			};
-		};
 	};
 	return regions;
 }
@@ -9650,29 +9658,68 @@ function getLiberties(tileId, regionId){
 
 	if(!region.claimable) return false;
 
-	console.log('region', region);
-
-	return regions;
-
-	//hasLiberties(region, regions)
+	return getNeighbor(regions, region);
 }
 
-function hasLiberties(tile, region){
-	//region.getOrientations(tile.orientation)
+function getNeighbor(regions, region, startRegion){
+	var liberties = [];
+
+	var orientations = region.getOrientations(0);
+
+	for (var i = orientations.length - 1; i >= 0; i--) {
+
+
+		var vector = {
+			x:region.x + orientations[i].vector.x,
+			y:region.y + orientations[i].vector.y
+		};
+
+		console.log('neighbor vector', vector, orientations[i]);
+
+		var neighbor = getRegionAt(regions, vector)
+
+		if(!neighbor){
+			continue;
+		}
+
+		neighbor.mapped = true;
+			
+
+		if(neighbor.claimable){
+
+			console.log('neighbor.claimed', neighbor.claimed);
+
+			if(!neighbor.claimed){
+				liberties.push(neighbor);
+			}
+		}else{
+			liberties = liberties.concat(getNeighbor(regions, neighbor, startRegion));
+		}
+		
+	};
+
+	return liberties;
+}
+
+function getRegionAt(regions, vector){
+	return $.grep(regions, function(region){
+		return region.x === vector.x && region.y === vector.y;
+	})[0];
 }
 },{}],5:[function(require,module,exports){
 module.exports = Orientation;
-function Orientation(index, angle){
-	this.index = index
-	this.angle = angle
+function Orientation(index, angle, vector){
+	this.index = index;
+	this.angle = angle;
+	this.vector = vector;
 }
 
-Orientation.XP = new Orientation(0, 0);
-Orientation.YP = new Orientation(1, 60);
-Orientation.ZP = new Orientation(2, 120);
-Orientation.XM = new Orientation(3, 180);
-Orientation.YM = new Orientation(4, 210);
-Orientation.ZM = new Orientation(5, 270);
+Orientation.XP = new Orientation(0, 0,		{x:1,	y:0});
+Orientation.YP = new Orientation(1, 60,		{x:0,	y:1});
+Orientation.ZP = new Orientation(2, 120,	{x:-1,	y:1});
+Orientation.XM = new Orientation(3, 180,	{x:-1,	y:0});
+Orientation.YM = new Orientation(4, 210,	{x:0,	y:-1});
+Orientation.ZM = new Orientation(5, 270,	{x:1,	y:-1});
 
 var orientations = [
 	Orientation.XP,
@@ -9751,7 +9798,7 @@ function Player(id) {
 
 Player.prototype.claim = claim;
 function claim(tileId, regionId){
-	this.claims.push({tileId:tileId, regionId:regionId});
+	this.claims.push({tileId:tileId, regionId:regionId, playerId:this.id});
 
 	var claims = this.claims;
 
@@ -9790,7 +9837,7 @@ function Region(x, y, xp, yp, zp, xm, ym, zm, claimable) {
 }
 
 Region.prototype.getOrientations = getOrientations;
-function getOrientations(orientation, index){
+function getOrientations(orientation){
 	var l = Orientation.rotateArray(this.l, orientation.index);
 	return $.grep(Orientation.get(), function(orientation, i){
 		return l[i];
@@ -9941,6 +9988,13 @@ function render(regions){
 	};
 }
 
+Renderer.prototype.highlight = highlight;
+function highlight(regions){
+	for (var i = regions.length - 1; i >= 0; i--) {
+		highlightRegion(regions[i], i);
+	};
+}
+
 function handleClickRegion(){
 	var region = d3.select(this);
 
@@ -9958,6 +10012,13 @@ function handleMouseoverRegion(){
 function handleMouseoutRegion(){
 	d3.select(this).transition().duration(300)
 	.style("opacity", 1);
+}
+
+function highlightRegion(region, index){
+	console.log('highlightRegion');
+
+	d3.select($('#' + region.tileId + '-' + region.id)[0]).transition().duration(300)
+	.style("opacity", .5);
 }
 
 function renderRegion(region, index){
@@ -9994,10 +10055,13 @@ function renderRegion(region, index){
 	};
 
 	var regionGroup = svg.append("g")
+	.attr("id", region.tileId + '-' + region.id)
 	.attr("transform", "translate("+(x*scale)+","+(y*scale)+")")
 	.attr("class", 'region')
 	.attr("data-region-id", region.id)
-	.attr("data-tile-id", region.tileId);
+	.attr("data-tile-id", region.tileId)
+	.attr("data-x", region.x)
+	.attr("data-y", region.y);
 
 	regionGroup.selectAll("hex" + index)
 	.data([polygon])
@@ -10041,10 +10105,10 @@ function renderRegion(region, index){
 			circle.attr("stroke", "red");
 
 			var circle = regionGroup.append("circle")
-				.attr("cx", cx*scale)
-				.attr("cy", cy*scale)
-				.attr("r", 6)
-				.attr("fill", 'red');
+			.attr("cx", cx*scale)
+			.attr("cy", cy*scale)
+			.attr("r", 6)
+			.attr("fill", 'red');
 		}
 	}
 

@@ -45,6 +45,13 @@ function render(regions){
 	};
 }
 
+Renderer.prototype.highlight = highlight;
+function highlight(regions){
+	for (var i = regions.length - 1; i >= 0; i--) {
+		highlightRegion(regions[i], i);
+	};
+}
+
 function handleClickRegion(){
 	var region = d3.select(this);
 
@@ -62,6 +69,13 @@ function handleMouseoverRegion(){
 function handleMouseoutRegion(){
 	d3.select(this).transition().duration(300)
 	.style("opacity", 1);
+}
+
+function highlightRegion(region, index){
+	console.log('highlightRegion');
+
+	d3.select($('#' + region.tileId + '-' + region.id)[0]).transition().duration(300)
+	.style("opacity", .5);
 }
 
 function renderRegion(region, index){
@@ -98,10 +112,13 @@ function renderRegion(region, index){
 	};
 
 	var regionGroup = svg.append("g")
+	.attr("id", region.tileId + '-' + region.id)
 	.attr("transform", "translate("+(x*scale)+","+(y*scale)+")")
 	.attr("class", 'region')
 	.attr("data-region-id", region.id)
-	.attr("data-tile-id", region.tileId);
+	.attr("data-tile-id", region.tileId)
+	.attr("data-x", region.x)
+	.attr("data-y", region.y);
 
 	regionGroup.selectAll("hex" + index)
 	.data([polygon])
@@ -145,10 +162,10 @@ function renderRegion(region, index){
 			circle.attr("stroke", "red");
 
 			var circle = regionGroup.append("circle")
-				.attr("cx", cx*scale)
-				.attr("cy", cy*scale)
-				.attr("r", 6)
-				.attr("fill", 'red');
+			.attr("cx", cx*scale)
+			.attr("cy", cy*scale)
+			.attr("r", 6)
+			.attr("fill", 'red');
 		}
 	}
 

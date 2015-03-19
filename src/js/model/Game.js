@@ -22,6 +22,21 @@ function getTile(tileId){
 	})[0];
 }
 
+/*
+
+Game.prototype.getClaaimedRegions = getClaaimedRegions;
+function getClaaimedRegions(){
+
+	var claims = [];
+
+	for (var i = this.players.length - 1; i >= 0; i--) {
+		var player = this.players[i];
+		claims = claims.concat(tile.getClaaimedRegions());
+	};
+	return claims;
+}
+*/
+
 Game.prototype.getRegions = getRegions;
 function getRegions(){
 
@@ -30,24 +45,6 @@ function getRegions(){
 	for (var i = this.tiles.length - 1; i >= 0; i--) {
 		var tile = this.tiles[i];
 		regions = regions.concat(tile.getRegions());
-	};
-
-	// set claim flag.
-	for (var p = this.players.length - 1; p >= 0; p--) {
-		var player = this.players[p];
-		var claims = player.getClaims();
-		
-		for (var c = claims.length - 1; c >= 0; c--) {
-			var claim = claims[c];
-
-			for (var r = regions.length - 1; r >= 0; r--) {
-				var region = regions[r];
-
-				if (parseInt(region.tileId) === parseInt(claim.tileId) && parseInt(region.id) === parseInt(claim.regionId)) {
-					region.claim = player.id
-				}
-			};
-		};
 	};
 	return regions;
 }
@@ -66,13 +63,51 @@ function getLiberties(tileId, regionId){
 
 	if(!region.claimable) return false;
 
-	console.log('region', region);
-
-	return regions;
-
-	//hasLiberties(region, regions)
+	return getNeighbor(regions, region);
 }
 
-function hasLiberties(tile, region){
-	//region.getOrientations(tile.orientation)
+function getNeighbor(regions, region, startRegion){
+	var liberties = [];
+
+	var orientations = region.getOrientations(0);
+
+	for (var i = orientations.length - 1; i >= 0; i--) {
+
+
+		var vector = {
+			x:region.x + orientations[i].vector.x,
+			y:region.y + orientations[i].vector.y
+		};
+
+		console.log('neighbor vector', vector, orientations[i]);
+
+		var neighbor = getRegionAt(regions, vector)
+
+		if(!neighbor){
+			continue;
+		}
+
+		neighbor.mapped = true;
+			
+
+		if(neighbor.claimable){
+
+			console.log('neighbor.claimed', neighbor.claimed);
+
+			if(!neighbor.claimed){
+				liberties.push(neighbor);
+			}
+		}else{
+			liberties = liberties.concat(getNeighbor(regions, neighbor, startRegion));
+		}
+		
+	};
+
+	return liberties;
+}
+
+function getRegionAt(regions, vector){
+	return $.grep(regions, function(region){
+		return region.x === vector.x && region.y === vector.y;
+	})[0];
 }

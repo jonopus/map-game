@@ -13,7 +13,7 @@ function Region(x, y, xp, yp, zp, xm, ym, zm, claimable) {
 }
 
 Region.prototype.getOrientations = getOrientations;
-function getOrientations(orientation, index){
+function getOrientations(orientation){
 	var l = Orientation.rotateArray(this.l, orientation.index);
 	return $.grep(Orientation.get(), function(orientation, i){
 		return l[i];

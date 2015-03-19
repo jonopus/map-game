@@ -7,7 +7,7 @@ function Player(id) {
 
 Player.prototype.claim = claim;
 function claim(tileId, regionId){
-	this.claims.push({tileId:tileId, regionId:regionId});
+	this.claims.push({tileId:tileId, regionId:regionId, playerId:this.id});
 
 	var claims = this.claims;
 

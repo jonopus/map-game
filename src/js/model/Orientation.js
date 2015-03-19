@@ -1,15 +1,16 @@
 module.exports = Orientation;
-function Orientation(index, angle){
-	this.index = index
-	this.angle = angle
+function Orientation(index, angle, vector){
+	this.index = index;
+	this.angle = angle;
+	this.vector = vector;
 }
 
-Orientation.XP = new Orientation(0, 0);
-Orientation.YP = new Orientation(1, 60);
-Orientation.ZP = new Orientation(2, 120);
-Orientation.XM = new Orientation(3, 180);
-Orientation.YM = new Orientation(4, 210);
-Orientation.ZM = new Orientation(5, 270);
+Orientation.XP = new Orientation(0, 0,		{x:1,	y:0});
+Orientation.YP = new Orientation(1, 60,		{x:0,	y:1});
+Orientation.ZP = new Orientation(2, 120,	{x:-1,	y:1});
+Orientation.XM = new Orientation(3, 180,	{x:-1,	y:0});
+Orientation.YM = new Orientation(4, 210,	{x:0,	y:-1});
+Orientation.ZM = new Orientation(5, 270,	{x:1,	y:-1});
 
 var orientations = [
 	Orientation.XP,

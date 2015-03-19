@@ -47,14 +47,25 @@ function handleRegionClicked(event, tileId, regionId) {
 
 	var regions = this.game.getRegions();
 
-	/*
-	var liberties = this.game.getLiberties(tileId, regionId)
+	var claims = player.getClaims();
+	
+	for (var c = claims.length - 1; c >= 0; c--) {
+		var claim = claims[c];
 
-	console.log('liberties.length', liberties.length);
+		for (var r = regions.length - 1; r >= 0; r--) {
+			var region = regions[r];
 
-	if(liberties.length){
-	}
-	*/
+			if (parseInt(region.tileId) === parseInt(claim.tileId) && parseInt(region.id) === parseInt(claim.regionId)) {
+				region.claim = player.id
+			}
+		};
+	};
 	
 	gameRenderer.render(regions);
+
+
+	var liberties = this.game.getLiberties(tileId, regionId)
+	console.log('liberties', liberties);
+	
+	gameRenderer.highlight(liberties);
 }
