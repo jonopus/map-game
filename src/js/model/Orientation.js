@@ -11,18 +11,29 @@ Orientation.XM = new Orientation(3, 180);
 Orientation.YM = new Orientation(4, 210);
 Orientation.ZM = new Orientation(5, 270);
 
-
 var orientations = [
-Orientation.XP,
-Orientation.YP,
-Orientation.ZP,
-Orientation.XM,
-Orientation.YM,
-Orientation.ZM
+	Orientation.XP,
+	Orientation.YP,
+	Orientation.ZP,
+	Orientation.XM,
+	Orientation.YM,
+	Orientation.ZM
 ]
 
-Orientation.rotate = rotate;
-function rotate(point, orientation){
+Orientation.get = get;
+function get(){
+	return orientations;
+}
+
+Orientation.rotateArray = rotateArray;
+function rotateArray(array, delta){
+	var first = array.slice(0);
+	var last = first.splice(-delta, delta);
+	return last.concat(first);
+}
+
+Orientation.rotatePoint = rotatePoint;
+function rotatePoint(point, orientation){
 	
 	var
 	x = point.x,

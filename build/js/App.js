@@ -9504,10 +9504,8 @@
   this.d3 = d3;
 }();
 },{}],2:[function(require,module,exports){
-var Grid = require('./model/Grid.js');
-var Tile = require('./model/Tile.js');
-var Region = require('./model/Region.js');
-var Orientation = require('./model/Orientation.js');
+var Controller = require('./controller/Controller.js');
+var Game = require('./model/Game.js');
 var Renderer = require('./view/Renderer.js');
 
 //http://d3js.org/
@@ -9516,55 +9514,153 @@ var Renderer = require('./view/Renderer.js');
 function App(){
 	console.log('App');
 
-	var grid = new Grid();
-	
-	grid.addRegions(new Tile(Region.O3, 0, 0, Orientation.XP).getRegions());
-	grid.addRegions(new Tile(Region.O3, 0, 0, Orientation.YP).getRegions());
-	grid.addRegions(new Tile(Region.O3, 0, 0, Orientation.ZP).getRegions());
-	grid.addRegions(new Tile(Region.O3, 0, 0, Orientation.XM).getRegions());
-	grid.addRegions(new Tile(Region.O3, 0, 0, Orientation.YM).getRegions());
-	grid.addRegions(new Tile(Region.O3, 0, 0, Orientation.ZM).getRegions());
-	
-
-	/*
-	grid.addRegions(new Tile(Region.O3, 0, 4).getRegions());
-	grid.addRegions(new Tile(Region.O2, 4, 4).getRegions());
-	grid.addRegions(new Tile(Region.O1, 8, 4).getRegions());
-	
-	grid.addRegions(new Tile(Region.C3, 0, 8).getRegions());
-	grid.addRegions(new Tile(Region.C2, 4, 8).getRegions());
-	grid.addRegions(new Tile(Region.C1, 8, 8).getRegions());
-	*/
-	
-	
-	new Renderer('mapCanvas').render(grid);
+	new Controller(new Game(), new Renderer('mapCanvas'));
 }
 
 $(function(){
 	new App();
 });
-},{"./model/Grid.js":3,"./model/Orientation.js":4,"./model/Region.js":5,"./model/Tile.js":6,"./view/Renderer.js":7}],3:[function(require,module,exports){
-module.exports = Grid;
-function Grid() {
-	console.log('Grid');
-	this.regions = [];
+},{"./controller/Controller.js":3,"./model/Game.js":4,"./view/Renderer.js":9}],3:[function(require,module,exports){
+var Region = require('../model/Region.js');
+var Orientation = require('../model/Orientation.js');
+var Tile = require('../model/Tile.js');
+var Player = require('../model/Player.js');
+
+var game;
+var gameRenderer;
+var player;
+
+module.exports = Controller;
+function Controller(game, renderer) {
+	console.log('Controller');
+
+	this.game = game;
+	gameRenderer = renderer;
+
+	$('body').on('REGION_CLICKED', $.proxy(this.handleRegionClicked, this))
+
+	player = new Player('A');
+	this.game.addPlayer(player);
+
+	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.XP));
+	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.YP));
+	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.ZP));
+	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.XM));
+	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.YM));
+	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.ZM));
+	/*
+	this.game.addTile(new Tile(Region.O3, -4, -3));
+	this.game.addTile(new Tile(Region.O2, 0, -3));
+	this.game.addTile(new Tile(Region.O1, 4, -3));
+	
+	this.game.addTile(new Tile(Region.C3, -6, 1));
+	this.game.addTile(new Tile(Region.C2, -2, 1));
+	this.game.addTile(new Tile(Region.C1, 2, 1));
+	*/
+
+
+	gameRenderer.render(this.game.getRegions());
 }
 
-Grid.prototype.addRegions = addRegions;
-function addRegions(regions){
-	this.regions = this.regions.concat(regions);
+Controller.prototype.handleRegionClicked = handleRegionClicked;
+function handleRegionClicked(event, tileId, regionId) {
+	console.log('handleRegionClicked', tileId, regionId);
+
+	player.claim(tileId, regionId);
+
+	var regions = this.game.getRegions();
+
+	/*
+	var liberties = this.game.getLiberties(tileId, regionId)
+
+	console.log('liberties.length', liberties.length);
+
+	if(liberties.length){
+	}
+	*/
+	
+	gameRenderer.render(regions);
+}
+},{"../model/Orientation.js":5,"../model/Player.js":6,"../model/Region.js":7,"../model/Tile.js":8}],4:[function(require,module,exports){
+module.exports = Game;
+function Game() {
+	console.log('Game');
+	this.tiles = [];
+	this.players = [];
 }
 
-Grid.prototype.addRegion = addRegion;
-function addRegion(region){
-	this.regions.push(region);
+Game.prototype.addPlayer = addPlayer;
+function addPlayer(player){
+	this.players.push(player);
 }
 
-Grid.prototype.getRegions = getRegions;
+Game.prototype.addTile = addTile;
+function addTile(tile){
+	this.tiles.push(tile);
+}
+
+Game.prototype.getTile = getTile;
+function getTile(tileId){
+	return $.grep(this.tiles, function(tile, i){
+		return tile.id === parseInt(tileId)
+	})[0];
+}
+
+Game.prototype.getRegions = getRegions;
 function getRegions(){
-	return this.regions;
+
+	var regions = [];
+
+	for (var i = this.tiles.length - 1; i >= 0; i--) {
+		var tile = this.tiles[i];
+		regions = regions.concat(tile.getRegions());
+	};
+
+	// set claim flag.
+	for (var p = this.players.length - 1; p >= 0; p--) {
+		var player = this.players[p];
+		var claims = player.getClaims();
+		
+		for (var c = claims.length - 1; c >= 0; c--) {
+			var claim = claims[c];
+
+			for (var r = regions.length - 1; r >= 0; r--) {
+				var region = regions[r];
+
+				if (parseInt(region.tileId) === parseInt(claim.tileId) && parseInt(region.id) === parseInt(claim.regionId)) {
+					region.claim = player.id
+				}
+			};
+		};
+	};
+	return regions;
 }
-},{}],4:[function(require,module,exports){
+
+Game.prototype.getLiberties = getLiberties;
+function getLiberties(tileId, regionId){
+	console.log('getLiberties', tileId, regionId);
+
+	var regions = this.getRegions();
+
+
+
+	var region = $.grep(regions, function(region){
+		return parseInt(region.tileId) === parseInt(tileId) && parseInt(region.id) === parseInt(regionId);
+	})[0];
+
+	if(!region.claimable) return false;
+
+	console.log('region', region);
+
+	return regions;
+
+	//hasLiberties(region, regions)
+}
+
+function hasLiberties(tile, region){
+	//region.getOrientations(tile.orientation)
+}
+},{}],5:[function(require,module,exports){
 module.exports = Orientation;
 function Orientation(index, angle){
 	this.index = index
@@ -9578,18 +9674,29 @@ Orientation.XM = new Orientation(3, 180);
 Orientation.YM = new Orientation(4, 210);
 Orientation.ZM = new Orientation(5, 270);
 
-
 var orientations = [
-Orientation.XP,
-Orientation.YP,
-Orientation.ZP,
-Orientation.XM,
-Orientation.YM,
-Orientation.ZM
+	Orientation.XP,
+	Orientation.YP,
+	Orientation.ZP,
+	Orientation.XM,
+	Orientation.YM,
+	Orientation.ZM
 ]
 
-Orientation.rotate = rotate;
-function rotate(point, orientation){
+Orientation.get = get;
+function get(){
+	return orientations;
+}
+
+Orientation.rotateArray = rotateArray;
+function rotateArray(array, delta){
+	var first = array.slice(0);
+	var last = first.splice(-delta, delta);
+	return last.concat(first);
+}
+
+Orientation.rotatePoint = rotatePoint;
+function rotatePoint(point, orientation){
 	
 	var
 	x = point.x,
@@ -9634,20 +9741,65 @@ function rotate(point, orientation){
 
 	return {x:_x, y:-_x-_z};
 }
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
+module.exports = Player;
+function Player(id) {
+	console.log('Player');
+	this.id = id;
+	this.claims = [];
+}
+
+Player.prototype.claim = claim;
+function claim(tileId, regionId){
+	this.claims.push({tileId:tileId, regionId:regionId});
+
+	var claims = this.claims;
+
+	var unique = []
+
+	$.grep(claims, function(claim){
+		var matches = $.grep(unique, function(claimInUnique){
+			return claimInUnique.tileId === claim.tileId && claimInUnique.regionId === claim.regionId;
+		}).length;
+
+		if(!matches){
+			unique.push(claim)
+		}
+	});
+
+	this.claims = unique;
+}
+
+Player.prototype.getClaims = getClaims;
+function getClaims(){
+	return this.claims;
+}
+},{}],7:[function(require,module,exports){
 var Orientation = require('./Orientation.js');
+
+var regionCount = 0;
 
 module.exports = Region;
 function Region(x, y, xp, yp, zp, xm, ym, zm, claimable) {
+
+	this.id = regionCount++;
 	this.x = x;
 	this.y = y;
 	this.l = [xp, yp, zp, xm, ym, zm];
 	this.claimable = claimable;
 }
 
+Region.prototype.getOrientations = getOrientations;
+function getOrientations(orientation, index){
+	var l = Orientation.rotateArray(this.l, orientation.index);
+	return $.grep(Orientation.get(), function(orientation, i){
+		return l[i];
+	})
+}
+
 Region.O3 = [
 	new Region(1,0,	false,	false,	false,	false,	false,	false,		false),
-	new Region(2,0,	false,	true,	true,	false,	true,	false,		false),
+	new Region(2,0,	false,	true,	true,	false,	true,	false,		true),
 	new Region(3,0,	false,	false,	false,	false,	false,	false,		false),
 	new Region(1,1,	false,	false,	true,	false,	false,	true,		false),
 	new Region(2,1,	true,	false,	false,	false,	true,	false,		false),
@@ -9656,7 +9808,7 @@ Region.O3 = [
 
 Region.O2 = [
 	new Region(1,0,	true,	false,	false,	false,	true,	false,		false),
-	new Region(2,0,	true,	true,	true,	true,	false,	false,		false),
+	new Region(2,0,	true,	true,	true,	true,	false,	false,		true),
 	new Region(3,0,	false,	false,	false,	true,	true,	false,		false),
 	new Region(1,1,	false,	false,	true,	false,	false,	true,		false),
 	new Region(2,1,	true,	false,	false,	false,	true,	false,		false),
@@ -9665,7 +9817,7 @@ Region.O2 = [
 
 Region.O1 = [
 	new Region(1,0,	true,	false,	true,	false,	false,	false,		false),
-	new Region(2,0,	true,	false,	true,	true,	true,	false,		false),
+	new Region(2,0,	true,	false,	true,	true,	true,	false,		true),
 	new Region(3,0,	true,	false,	false,	true,	false,	false,		false),
 	new Region(1,1,	false,	true,	false,	false,	false,	true,		false),
 	new Region(2,1,	false,	false,	false,	false,	false,	false,		false),
@@ -9673,47 +9825,41 @@ Region.O1 = [
 ];
 
 Region.C3 = [
-	new Region(1,0,	false,	false,	true,	false,	true,	false,		false),
+	new Region(1,0,	false,	false,	true,	false,	true,	false,		true),
 	new Region(2,0,	false,	false,	false,	false,	false,	false,		false),
-	new Region(3,0,	true,	false,	false,	false,	true,	false,		false),
+	new Region(3,0,	true,	false,	false,	false,	true,	false,		true),
 	new Region(1,1,	false,	false,	false,	false,	false,	false,		false),
 	new Region(2,1,	false,	false,	false,	false,	false,	false,		false),
-	new Region(1,2,	true,	false,	true,	false,	false,	false,		false)
+	new Region(1,2,	true,	false,	true,	false,	false,	false,		true)
 ];
 
 Region.C2 = [
 	new Region(1,0,	true,	false,	true,	false,	false,	false,		false),
-	new Region(2,0,	true,	false,	false,	true,	true,	false,		false),
+	new Region(2,0,	true,	false,	false,	true,	true,	false,		true),
 	new Region(3,0,	true,	false,	false,	true,	false,	false,		false),
 	new Region(1,1,	false,	false,	false,	false,	false,	false,		false),
 	new Region(2,1,	false,	false,	false,	false,	false,	false,		false),
-	new Region(1,2,	true,	false,	true,	false,	false,	false,		false)
+	new Region(1,2,	true,	false,	true,	false,	false,	false,		true)
 ];
 
 Region.C1 = [
 	new Region(1,0,	false,	true,	false,	false,	true,	false,		false),
 	new Region(2,0,	false,	false,	false,	false,	false,	false,		false),
 	new Region(3,0,	false,	false,	true,	false,	true,	false,		false),
-	new Region(1,1,	false,	false,	true,	false,	true,	false,		false),
-	new Region(2,1,	true,	false,	false,	false,	false,	true,		false),
+	new Region(1,1,	false,	false,	true,	false,	true,	false,		true),
+	new Region(2,1,	true,	false,	false,	false,	false,	true,		true),
 	new Region(1,2,	false,	false,	false,	false,	false,	false,		false)
 ];
-
-Region.XX = [
-	new Region(1,0,	true,	false,	true,	false,	true,	false,		false),
-	new Region(2,0,	false,	false,	false,	false,	true,	false,		false),
-	new Region(3,0,	false,	false,	false,	false,	true,	false,		false),
-	new Region(1,1,	false,	false,	true,	false,	false,	false,		false),
-	new Region(2,1,	true,	false,	false,	false,	false,	false,		false),
-	new Region(1,2,	true,	false,	false,	false,	false,	false,		false)
-];
-
-},{"./Orientation.js":4}],6:[function(require,module,exports){
+},{"./Orientation.js":5}],8:[function(require,module,exports){
 var Region = require('./Region.js');
 var Orientation = require('./Orientation.js');
 
+var tileCount = 0;
+var claimedRegions = [];
+
 module.exports = Tile;
 function Tile(regions, x, y, orientation) {
+	this.id = tileCount++;
 	this.x = x;
 	this.y = y;
 	this.orientation = orientation || Orientation.XP;
@@ -9726,137 +9872,181 @@ function getRegions(){
 	var tile = this;
 
 	var regions = $.map(this.regions, function(region, i){
+		var point = Orientation.rotatePoint({x:region.x, y:region.y}, tile.orientation);
 		
 		region = jQuery.extend({}, region);
-		var point = Orientation.rotate({x:region.x, y:region.y}, tile.orientation);
-
+		region.tileId = tile.id
+		region.l = Orientation.rotateArray(region.l, tile.orientation.index)
 		region.x = point.x + tile.x;
 		region.y = point.y + tile.y;
 
-		var copy = region.l.slice(0);
-		var end = copy.splice(-tile.orientation.index, tile.orientation.index);
-		region.l = end.concat(copy);
 		
 		return region;
 	})
 
 	return regions;
 }
-},{"./Orientation.js":4,"./Region.js":5}],7:[function(require,module,exports){
+
+Tile.prototype.getRegion = getRegion;
+function getRegion(regionId){
+	return $.grep(this.regions, function(region, i){
+		return region.id === parseInt(regionId)
+	})[0];
+}
+},{"./Orientation.js":5,"./Region.js":7}],9:[function(require,module,exports){
 var d3 = require('d3');
 
-var context;
+var svg;
 var scale = 25;
 var d2 = Math.sqrt(3);
 var hexagon = [
-{x:scale*(d2),		y:scale*(.5)},
-{x:scale*(d2),		y:scale*(1.5)},
-{x:scale*(d2*.5),	y:scale*(2)},
-{x:scale*0,			y:scale*(1.5)},
-{x:scale*0,			y:scale*(.5)},
-{x:scale*(d2*.5),	y:scale*(0)}
+	{x:d2,		y:.5},
+	{x:d2,		y:1.5},
+	{x:d2*.5,	y:2},
+	{x:0,		y:1.5},
+	{x:0,		y:.5},
+	{x:d2*.5,	y:0}
 ]
 var orthagonal = [
-{x:scale*(d2),		y:scale*(1)},
-{x:scale*(d2*.75),	y:scale*(1.75)},
-{x:scale*(d2*.25),	y:scale*(1.75)},
-{x:scale*(0),		y:scale*(1)},
-{x:scale*(d2*.25),	y:scale*(.25)},
-{x:scale*(d2*.75),	y:scale*(.25)}
+	{x:d2,		y:1},
+	{x:d2*.75,	y:1.75},
+	{x:d2*.25,	y:1.75},
+	{x:0,		y:1},
+	{x:d2*.25,	y:.25},
+	{x:d2*.75,	y:.25}
 ]
 
 module.exports = Renderer;
 function Renderer(selector) {
 	console.log('Renderer');
 
-
-	/*
-	var c = document.getElementById(selector);
-	context = c.getContext("2d");
-	*/
-
-	context = d3.select("body")
+	svg = d3.select("body")
 	.append("svg")
 	.attr("width", 1000)
 	.attr("height", 400)
 	.append("g")
 	.attr("transform", "translate(500,200)");
+
+	$('svg').on('click', '.region', handleClickRegion);
+	$('svg').on('mouseover', '.region', handleMouseoverRegion);
+	$('svg').on('mouseout', '.region', handleMouseoutRegion);
 }
 
 Renderer.prototype.render = render;
-function render(grid){
-	renderRegions(grid.getRegions());
-}
+function render(regions){
+	svg.selectAll("*").remove();
 
-function renderRegions(regions){
 	for (var i = regions.length - 1; i >= 0; i--) {
 		renderRegion(regions[i], i);
 	};
 }
 
+function handleClickRegion(){
+	var region = d3.select(this);
+
+	region.transition().duration(300)
+	.style("opacity", .5);
+
+	$('body').trigger('REGION_CLICKED', [region.attr("data-tile-id"), region.attr("data-region-id")])
+}
+
+function handleMouseoverRegion(){
+	d3.select(this).transition().duration(300)
+	.style("opacity", .7);
+}
+
+function handleMouseoutRegion(){
+	d3.select(this).transition().duration(300)
+	.style("opacity", 1);
+}
+
 function renderRegion(region, index){
-	var x = ((region.x * d2) + (region.y * (d2*.5))) * scale;
-	var y = (region.y * scale)*1.5;
-	var cx = (d2*.5) * scale;
-	var cy = 1 * scale;
+	var x = ((region.x * d2) + (region.y * (d2*.5)));
+	var y = (region.y)*1.5;
+	var cx = (d2*.5);
+	var cy = 1;
 
 	var polygon = [];
+	var lines = []
 
 	for (var i = hexagon.length - 1; i >= 0; i--) {
 		var point = hexagon[i];
 		polygon.push({
-			x:x + point.x,
-			y:y + point.y
+			x:point.x*scale,
+			y:point.y*scale
 		});
 	};
 
-	context.selectAll("hex" + index)
+	for (var i = orthagonal.length - 1; i >= 0; i--) {
+		var point = orthagonal[i];
+		if(region.l[i]){
+			lines.push([
+			{
+				x:cx*scale,
+				y:cy*scale
+			},
+			{
+				x:point.x*scale,
+				y:point.y*scale
+			}
+			])
+		}
+	};
+
+	var regionGroup = svg.append("g")
+	.attr("transform", "translate("+(x*scale)+","+(y*scale)+")")
+	.attr("class", 'region')
+	.attr("data-region-id", region.id)
+	.attr("data-tile-id", region.tileId);
+
+	regionGroup.selectAll("hex" + index)
 	.data([polygon])
 	.enter()
 	.append("polygon")
 	.attr("points",function(d) { 
 		return d.map(function(d) {
 			return [
-				d.x,
-				d.y
+			d.x,
+			d.y
 			].join(",");
 		}).join(" ");
-	})
-	.attr("stroke-width",1);
+	});
 
-	var lines = []
-
-	for (var i = orthagonal.length - 1; i >= 0; i--) {
-		var point = orthagonal[i];
-		if(region.l[i]){
-			lines.push([
-				{
-					x:x + cx,
-					y:y + cy
-				},
-				{
-					x:x + point.x,
-					y:y + point.y
-				}
-			])
-		}
-	};
-
-
-	context.selectAll("lines" + index + i)
+	regionGroup.selectAll("lines" + index + i)
 	.data(lines)
 	.enter()
 	.append("polygon")
 	.attr("points",function(d) { 
 		return d.map(function(d) {
 			return [
-				d.x,
-				d.y
+			d.x,
+			d.y
 			].join(",");
 		}).join(" ");
 	})
 	.attr("stroke-width", 1)
 	.attr("stroke", "red");
+
+	//region.claim
+
+	if(region.claimable){
+
+	var circle = regionGroup.append("circle")
+		.attr("cx", cx*scale)
+		.attr("cy", cy*scale)
+		.attr("r", 10)
+		.attr("fill", '#555');
+
+		if(region.claim){
+			circle.attr("stroke", "red");
+
+			var circle = regionGroup.append("circle")
+				.attr("cx", cx*scale)
+				.attr("cy", cy*scale)
+				.attr("r", 6)
+				.attr("fill", 'red');
+		}
+	}
 
 }
 
