@@ -25,7 +25,7 @@ function Renderer(selector) {
 	svg = d3.select("body")
 	.append("svg")
 	.attr("width", 1000)
-	.attr("height", 400)
+	.attr("height", 800)
 	.append("g")
 	.attr("transform", "translate(500,200)");
 
@@ -44,34 +44,37 @@ function render(regions){
 }
 
 Renderer.prototype.highlight = highlight;
-function highlight(regions){
+function highlight(className, regions){
+	
+	$('.'+className)
+	.attr("class", function(index, classNames) {
+		return classNames.replace(className, '');
+	});
+
 	for (var i = regions.length - 1; i >= 0; i--) {
-		highlightRegion(regions[i], i);
+		var region = regions[i];
+		
+		$('#region-' + region.tileId + '-' + region.id)
+		.attr("class", function(index, classNames) {
+			return classNames + ' ' + className;
+		});
 	};
+
 }
 
 function handleClickRegion(){
 	var region = d3.select(this);
-
-	region.transition().duration(300)
-	.style("opacity", .5);
-
 	$('body').trigger('REGION_CLICKED', [region.attr("data-tile-id"), region.attr("data-region-id")])
 }
 
 function handleMouseoverRegion(){
-	d3.select(this).transition().duration(300)
-	.style("opacity", .7);
+	var region = d3.select(this);
+	$('body').trigger('REGION_MOUSEOVER', [region.attr("data-tile-id"), region.attr("data-region-id")])
 }
 
 function handleMouseoutRegion(){
-	d3.select(this).transition().duration(300)
-	.style("opacity", 1);
-}
-
-function highlightRegion(region, index){
-	d3.select($('#' + region.tileId + '-' + region.id)[0]).transition().duration(300)
-	.style("opacity", .5);
+	var region = d3.select(this);
+	$('body').trigger('REGION_MOUSEOUT', [region.attr("data-tile-id"), region.attr("data-region-id")])
 }
 
 function renderRegion(region, index){
@@ -108,7 +111,7 @@ function renderRegion(region, index){
 	};
 
 	var regionGroup = svg.append("g")
-	.attr("id", region.tileId + '-' + region.id)
+	.attr("id", 'region-' + region.tileId + '-' + region.id)
 	.attr("transform", "translate("+(x*scale)+","+(y*scale)+")")
 	.attr("class", 'region')
 	.attr("data-region-id", region.id)
@@ -116,10 +119,12 @@ function renderRegion(region, index){
 	.attr("data-x", region.x)
 	.attr("data-y", region.y);
 
+	
 	regionGroup.selectAll("hex" + index)
 	.data([polygon])
 	.enter()
 	.append("polygon")
+	.attr("class", 'hexagon')
 	.attr("points",function(d) { 
 		return d.map(function(d) {
 			return [
@@ -156,8 +161,6 @@ function renderRegion(region, index){
 
 
 		if(region.claimed){
-			console.log('region.claimed', region.claimed);
-
 			var color = region.claimed.player.color
 
 			circle.attr("stroke", color);

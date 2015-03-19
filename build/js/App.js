@@ -9525,53 +9525,87 @@ var Tile = require('../model/Tile.js');
 var Player = require('../model/Player.js');
 
 var game;
-var gameRenderer;
+var renderer;
 
 module.exports = Controller;
-function Controller(game, renderer) {
-	this.game = game;
-	gameRenderer = renderer;
+function Controller(newGame, newRenderer) {
+	game = newGame;
+	renderer = newRenderer;
 
 	$('body').on('REGION_CLICKED', $.proxy(this.handleRegionClicked, this))
+	$('body').on('REGION_MOUSEOVER', $.proxy(this.handleRegionMouseover, this))
+	$('body').on('REGION_MOUSEOUT', $.proxy(this.handleRegionMouseout, this))
 
-	this.game.addPlayer(new Player('Red', 'red'));
-	this.game.addPlayer(new Player('Blue', 'blue'));
+	//game.addTile(new Tile(Region.O3, 0, 0, Orientation.XP));
+	game.addTile(new Tile(Region.O3, 0, 0, Orientation.YP));
+	game.addTile(new Tile(Region.O3, 0, 0, Orientation.ZP));
+	game.addTile(new Tile(Region.O3, 0, 0, Orientation.XM));
+	game.addTile(new Tile(Region.O3, 0, 0, Orientation.YM));
+	game.addTile(new Tile(Region.O3, 0, 0, Orientation.ZM));
+	game.addTile(new Tile(Region.O3, 4, -1, Orientation.YP));
+	game.addTile(new Tile(Region.O3, 4, -1, Orientation.XP));
+	game.addTile(new Tile(Region.O3, 4, -1, Orientation.ZM));
+	game.addTile(new Tile(Region.O3, 4, -1, Orientation.YM));
+	game.addTile(new Tile(Region.O3, -3, 4, Orientation.XP));
+	game.addTile(new Tile(Region.O3, 1, 3, Orientation.YP));
+	game.addTile(new Tile(Region.O3, 1, 3, Orientation.XP));
 
-	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.XP));
-	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.YP));
-	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.ZP));
-	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.XM));
-	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.YM));
-	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.ZM));
+	game.addPlayer(new Player('Red', 'red'));
+	game.addPlayer(new Player('Blue', 'blue'));
+	game.nextPlayer()
 
 	/*
-	this.game.addTile(new Tile(Region.O3, -4, -3));
-	this.game.addTile(new Tile(Region.O2, 0, -3));
-	this.game.addTile(new Tile(Region.O1, 4, -3));
+	game.addTile(new Tile(Region.O3, -4, -3));
+	game.addTile(new Tile(Region.O2, 0, -3));
+	game.addTile(new Tile(Region.O1, 4, -3));
 	
-	this.game.addTile(new Tile(Region.C3, -6, 1));
-	this.game.addTile(new Tile(Region.C2, -2, 1));
-	this.game.addTile(new Tile(Region.C1, 2, 1));
+	game.addTile(new Tile(Region.C3, -6, 1));
+	game.addTile(new Tile(Region.C2, -2, 1));
+	game.addTile(new Tile(Region.C1, 2, 1));
 	*/
 
-	gameRenderer.render(this.game.getRegions());
+	renderer.render(game.getRegions());
+}
+
+Controller.prototype.handleRegionMouseover = handleRegionMouseover;
+function handleRegionMouseover(event, tileId, regionId) {
+	var regions = game.getRegions();
+
+	var region = game.getRegion(regions, tileId, regionId);
+
+	if(!region.claimable) return;
+
+	var player = game.currentPlayer;
+	var liberties = game.getLiberties(regions, player, region);
+	var captures = game.getCaptures(regions, player, region);
+
+	renderer.highlight('liberty', liberties);
+	renderer.highlight('capture', captures);
+}
+
+Controller.prototype.handleRegionMouseout = handleRegionMouseout;
+function handleRegionMouseout(event, tileId, regionId) {
+	renderer.highlight('highlight', []);
 }
 
 Controller.prototype.handleRegionClicked = handleRegionClicked;
 function handleRegionClicked(event, tileId, regionId) {
-	var regions = this.game.getRegions();
+	var regions = game.getRegions();
 
-	var player = this.game.nextPlayer()
+	var player = game.currentPlayer;
+	var region = game.getRegion(regions, tileId, regionId);
+	var liberties = game.getLiberties(regions, player, region);
+	var captures = game.getCaptures(regions, player, region);
 
-	var liberties = this.game.getLiberties(regions, player, tileId, regionId);
-
-	if(liberties.length){
-		player.claim(tileId, regionId);
-		this.game.applyClaims(regions, player.getClaims());
+	if(!region.claimed && (liberties.length || captures.length)){
+		var claim = player.claim(tileId, regionId);
+		game.removeClaims(captures);
+		game.applyClaims(regions, [claim]);
+		game.nextPlayer()
 	}
 	
-	gameRenderer.render(regions);
-	gameRenderer.highlight(liberties);
+	renderer.render(regions);
+	renderer.highlight('highlight', liberties);
 }
 },{"../model/Orientation.js":5,"../model/Player.js":6,"../model/Region.js":7,"../model/Tile.js":8}],4:[function(require,module,exports){
 module.exports = Game;
@@ -9618,6 +9652,19 @@ function getRegions(){
 		regions = regions.concat(tile.getRegions());
 	};
 
+	applyClaims(regions, this.getClaims());
+
+	return regions;
+}
+
+function getRegionAt(regions, vector){
+	return $.grep(regions, function(region){
+		return region.x === vector.x && region.y === vector.y;
+	})[0];
+}
+
+Game.prototype.getClaims = getClaims;
+function getClaims(){
 	var claims = [];
 
 	for (var i = this.players.length - 1; i >= 0; i--) {
@@ -9625,9 +9672,17 @@ function getRegions(){
 		claims = claims.concat(player.getClaims());
 	};
 
-	applyClaims(regions, claims);
+	return claims
+}
 
-	return regions;
+Game.prototype.removeClaims = removeClaims;
+function removeClaims(captures){
+	for (var i = 0; i < captures.length; i++) {
+		var region = captures[i];
+		var claim = region.claimed;
+		claim.player.removeClaim(claim.tileId, claim.regionId)
+		region.claimed = null;
+	};
 }
 
 Game.prototype.applyClaims = applyClaims;
@@ -9646,21 +9701,16 @@ function applyClaims(regions, claims){
 	};
 }
 
-Game.prototype.getLiberties = getLiberties;
-function getLiberties(regions, player, tileId, regionId){
-	var region = $.grep(regions, function(region){
+Game.prototype.getRegion = getRegion;
+function getRegion(regions, tileId, regionId){
+	return $.grep(regions, function(region){
 		return parseInt(region.tileId) === parseInt(tileId) && parseInt(region.id) === parseInt(regionId);
 	})[0];
-
-	if(!region.claimable) return false;
-
-	return getNeighbor(regions, player, region);
 }
 
-function getNeighbor(regions, player, region, startRegion, fromOrientation){
-	console.log('getNeighbor');
-
-	var liberties = [];
+Game.prototype.getNeighbors = getNeighbors;
+function getNeighbors(regions, region, excludeOrientation){
+	var neighbors = [];
 
 	var orientations = region.getOrientations(0);
 
@@ -9668,7 +9718,7 @@ function getNeighbor(regions, player, region, startRegion, fromOrientation){
 
 		var orientation = orientations[i];
 
-		if(fromOrientation === Orientation.getOpposite(orientation)){
+		if(Orientation.getOpposite(orientation) === excludeOrientation){
 			continue;
 		}
 
@@ -9683,33 +9733,111 @@ function getNeighbor(regions, player, region, startRegion, fromOrientation){
 			continue;
 		}
 
-		neighbor.mapped = true;
-
-
 		if(neighbor.claimable){
-			if(!neighbor.claimed){
-				liberties.push(neighbor);
-			}else{
-				if(neighbor.claimed.player && neighbor.claimed.player === player){
-					liberties = liberties.concat(getNeighbor(regions, player, neighbor, startRegion, orientation));
-				}else if(neighbor.claimed.player && neighbor.claimed.player !== player){
+			neighbors.push(neighbor);
+		}else{
+			neighbors = neighbors.concat(getNeighbors(regions, neighbor, orientation));
+		}
+	};
 
-					console.log('enimieLiberties', getNeighbor(regions, neighbor.claimed.player, neighbor, neighbor).length);
-				}
+	return neighbors;
+}
+
+Game.prototype.getCaptures = getCaptures;
+function getCaptures(regions, player, region){
+
+	var captures = [];
+
+	console.log(region.claimed);
+
+	if(region.claimed) return captures;
+
+	var neighbors = this.getNeighbors(regions, region);
+
+	for (var i = neighbors.length - 1; i >= 0; i--) {
+		var neighbor = neighbors[i];
+
+
+		if(neighbor.claimed && neighbor.claimed.player != player){
+
+
+			var liberties = this.getLiberties(regions, neighbor.claimed.player, neighbor);
+
+			if(liberties.length === 1){
+				captures = captures.concat(this.getGroup(regions, neighbor.claimed.player, neighbor));
+			}
+		}
+	};
+
+	return captures;
+}
+
+Game.prototype.getLiberties = getLiberties;
+function getLiberties(regions, player, region, startRegion){
+
+	if(!startRegion){
+		startRegion = region
+	}
+
+	var liberties = [];
+
+	var neighbors = getNeighbors(regions, region);
+
+	for (var i = neighbors.length - 1; i >= 0; i--) {
+		
+		var neighbor = neighbors[i];
+
+		if(neighbor === startRegion){
+			continue;
+		}
+
+		if(neighbor.claimed){
+			if(neighbor.claimed.player && neighbor.claimed.player === player){
+				liberties = liberties.concat(getLiberties(regions, player, neighbor, startRegion));
 			}
 		}else{
-			liberties = liberties.concat(getNeighbor(regions, player, neighbor, startRegion, orientation));
+			if(neighbor.claimable){
+				liberties.push(neighbor);
+			}else{
+				liberties = liberties.concat(getLiberties(regions, player, neighbor, startRegion));
+			}
 		}
-		
 	};
 
 	return liberties;
 }
 
-function getRegionAt(regions, vector){
-	return $.grep(regions, function(region){
-		return region.x === vector.x && region.y === vector.y;
-	})[0];
+
+Game.prototype.getGroup = getGroup;
+function getGroup(regions, player, region, startRegion){
+
+	if(!startRegion){
+		startRegion = region
+	}
+
+	var group = [];
+
+	var neighbors = getNeighbors(regions, region);
+
+	for (var i = neighbors.length - 1; i >= 0; i--) {
+		
+		var neighbor = neighbors[i];
+
+		if(neighbor === startRegion){
+			continue;
+		}
+
+		if(neighbor.claimed){
+			if(neighbor.claimed.player && neighbor.claimed.player === player){
+				group = group.concat(getGroup(regions, player, neighbor, startRegion));
+			}
+		}
+
+	};
+
+	group.push(region);
+
+	return group;
 }
 },{"./Orientation.js":5}],5:[function(require,module,exports){
 module.exports = Orientation;
@@ -9813,25 +9941,32 @@ function Player(id, color) {
 	this.claims = [];
 }
 
+Player.prototype.removeClaim = removeClaim;
+function removeClaim(tileId, regionId){
+
+	console.log('this.claim a', tileId, regionId, this.claims);
+
+	this.claims = $.grep(this.claims, function(item){
+		return !(item.tileId === tileId && item.regionId === regionId);
+	})
+
+	console.log('this.claims b', tileId, regionId, this.claims);
+}
+
 Player.prototype.claim = claim;
 function claim(tileId, regionId){
-	this.claims.push({tileId:tileId, regionId:regionId, player:this});
+	
+	var claim = {tileId:tileId, regionId:regionId, player:this};
 
-	var claims = this.claims;
+	if($.grep(this.claims, function(item){
+		return item.tileId === claim.tileId && item.regionId === claim.regionId;
+	}).length){
+		return false;
+	}
 
-	var unique = []
+	this.claims.push(claim);
 
-	$.grep(claims, function(claim){
-		var matches = $.grep(unique, function(claimInUnique){
-			return claimInUnique.tileId === claim.tileId && claimInUnique.regionId === claim.regionId;
-		}).length;
-
-		if(!matches){
-			unique.push(claim)
-		}
-	});
-
-	this.claims = unique;
+	return claim;
 }
 
 Player.prototype.getClaims = getClaims;
@@ -9984,7 +10119,7 @@ function Renderer(selector) {
 	svg = d3.select("body")
 	.append("svg")
 	.attr("width", 1000)
-	.attr("height", 400)
+	.attr("height", 800)
 	.append("g")
 	.attr("transform", "translate(500,200)");
 
@@ -10003,34 +10138,37 @@ function render(regions){
 }
 
 Renderer.prototype.highlight = highlight;
-function highlight(regions){
+function highlight(className, regions){
+	
+	$('.'+className)
+	.attr("class", function(index, classNames) {
+		return classNames.replace(className, '');
+	});
+
 	for (var i = regions.length - 1; i >= 0; i--) {
-		highlightRegion(regions[i], i);
+		var region = regions[i];
+		
+		$('#region-' + region.tileId + '-' + region.id)
+		.attr("class", function(index, classNames) {
+			return classNames + ' ' + className;
+		});
 	};
+
 }
 
 function handleClickRegion(){
 	var region = d3.select(this);
-
-	region.transition().duration(300)
-	.style("opacity", .5);
-
 	$('body').trigger('REGION_CLICKED', [region.attr("data-tile-id"), region.attr("data-region-id")])
 }
 
 function handleMouseoverRegion(){
-	d3.select(this).transition().duration(300)
-	.style("opacity", .7);
+	var region = d3.select(this);
+	$('body').trigger('REGION_MOUSEOVER', [region.attr("data-tile-id"), region.attr("data-region-id")])
 }
 
 function handleMouseoutRegion(){
-	d3.select(this).transition().duration(300)
-	.style("opacity", 1);
-}
-
-function highlightRegion(region, index){
-	d3.select($('#' + region.tileId + '-' + region.id)[0]).transition().duration(300)
-	.style("opacity", .5);
+	var region = d3.select(this);
+	$('body').trigger('REGION_MOUSEOUT', [region.attr("data-tile-id"), region.attr("data-region-id")])
 }
 
 function renderRegion(region, index){
@@ -10067,7 +10205,7 @@ function renderRegion(region, index){
 	};
 
 	var regionGroup = svg.append("g")
-	.attr("id", region.tileId + '-' + region.id)
+	.attr("id", 'region-' + region.tileId + '-' + region.id)
 	.attr("transform", "translate("+(x*scale)+","+(y*scale)+")")
 	.attr("class", 'region')
 	.attr("data-region-id", region.id)
@@ -10075,10 +10213,12 @@ function renderRegion(region, index){
 	.attr("data-x", region.x)
 	.attr("data-y", region.y);
 
+	
 	regionGroup.selectAll("hex" + index)
 	.data([polygon])
 	.enter()
 	.append("polygon")
+	.attr("class", 'hexagon')
 	.attr("points",function(d) { 
 		return d.map(function(d) {
 			return [
@@ -10115,8 +10255,6 @@ function renderRegion(region, index){
 
 
 		if(region.claimed){
-			console.log('region.claimed', region.claimed);
-
 			var color = region.claimed.player.color
 
 			circle.attr("stroke", color);

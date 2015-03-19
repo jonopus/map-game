@@ -4,51 +4,85 @@ var Tile = require('../model/Tile.js');
 var Player = require('../model/Player.js');
 
 var game;
-var gameRenderer;
+var renderer;
 
 module.exports = Controller;
-function Controller(game, renderer) {
-	this.game = game;
-	gameRenderer = renderer;
+function Controller(newGame, newRenderer) {
+	game = newGame;
+	renderer = newRenderer;
 
 	$('body').on('REGION_CLICKED', $.proxy(this.handleRegionClicked, this))
+	$('body').on('REGION_MOUSEOVER', $.proxy(this.handleRegionMouseover, this))
+	$('body').on('REGION_MOUSEOUT', $.proxy(this.handleRegionMouseout, this))
 
-	this.game.addPlayer(new Player('Red', 'red'));
-	this.game.addPlayer(new Player('Blue', 'blue'));
+	//game.addTile(new Tile(Region.O3, 0, 0, Orientation.XP));
+	game.addTile(new Tile(Region.O3, 0, 0, Orientation.YP));
+	game.addTile(new Tile(Region.O3, 0, 0, Orientation.ZP));
+	game.addTile(new Tile(Region.O3, 0, 0, Orientation.XM));
+	game.addTile(new Tile(Region.O3, 0, 0, Orientation.YM));
+	game.addTile(new Tile(Region.O3, 0, 0, Orientation.ZM));
+	game.addTile(new Tile(Region.O3, 4, -1, Orientation.YP));
+	game.addTile(new Tile(Region.O3, 4, -1, Orientation.XP));
+	game.addTile(new Tile(Region.O3, 4, -1, Orientation.ZM));
+	game.addTile(new Tile(Region.O3, 4, -1, Orientation.YM));
+	game.addTile(new Tile(Region.O3, -3, 4, Orientation.XP));
+	game.addTile(new Tile(Region.O3, 1, 3, Orientation.YP));
+	game.addTile(new Tile(Region.O3, 1, 3, Orientation.XP));
 
-	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.XP));
-	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.YP));
-	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.ZP));
-	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.XM));
-	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.YM));
-	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.ZM));
+	game.addPlayer(new Player('Red', 'red'));
+	game.addPlayer(new Player('Blue', 'blue'));
+	game.nextPlayer()
 
 	/*
-	this.game.addTile(new Tile(Region.O3, -4, -3));
-	this.game.addTile(new Tile(Region.O2, 0, -3));
-	this.game.addTile(new Tile(Region.O1, 4, -3));
+	game.addTile(new Tile(Region.O3, -4, -3));
+	game.addTile(new Tile(Region.O2, 0, -3));
+	game.addTile(new Tile(Region.O1, 4, -3));
 	
-	this.game.addTile(new Tile(Region.C3, -6, 1));
-	this.game.addTile(new Tile(Region.C2, -2, 1));
-	this.game.addTile(new Tile(Region.C1, 2, 1));
+	game.addTile(new Tile(Region.C3, -6, 1));
+	game.addTile(new Tile(Region.C2, -2, 1));
+	game.addTile(new Tile(Region.C1, 2, 1));
 	*/
 
-	gameRenderer.render(this.game.getRegions());
+	renderer.render(game.getRegions());
+}
+
+Controller.prototype.handleRegionMouseover = handleRegionMouseover;
+function handleRegionMouseover(event, tileId, regionId) {
+	var regions = game.getRegions();
+
+	var region = game.getRegion(regions, tileId, regionId);
+
+	if(!region.claimable) return;
+
+	var player = game.currentPlayer;
+	var liberties = game.getLiberties(regions, player, region);
+	var captures = game.getCaptures(regions, player, region);
+
+	renderer.highlight('liberty', liberties);
+	renderer.highlight('capture', captures);
+}
+
+Controller.prototype.handleRegionMouseout = handleRegionMouseout;
+function handleRegionMouseout(event, tileId, regionId) {
+	renderer.highlight('highlight', []);
 }
 
 Controller.prototype.handleRegionClicked = handleRegionClicked;
 function handleRegionClicked(event, tileId, regionId) {
-	var regions = this.game.getRegions();
+	var regions = game.getRegions();
 
-	var player = this.game.nextPlayer()
+	var player = game.currentPlayer;
+	var region = game.getRegion(regions, tileId, regionId);
+	var liberties = game.getLiberties(regions, player, region);
+	var captures = game.getCaptures(regions, player, region);
 
-	var liberties = this.game.getLiberties(regions, player, tileId, regionId);
-
-	if(liberties.length){
-		player.claim(tileId, regionId);
-		this.game.applyClaims(regions, player.getClaims());
+	if(!region.claimed && (liberties.length || captures.length)){
+		var claim = player.claim(tileId, regionId);
+		game.removeClaims(captures);
+		game.applyClaims(regions, [claim]);
+		game.nextPlayer()
 	}
 	
-	gameRenderer.render(regions);
-	gameRenderer.highlight(liberties);
+	renderer.render(regions);
+	renderer.highlight('highlight', liberties);
 }

@@ -42,6 +42,19 @@ function getRegions(){
 		regions = regions.concat(tile.getRegions());
 	};
 
+	applyClaims(regions, this.getClaims());
+
+	return regions;
+}
+
+function getRegionAt(regions, vector){
+	return $.grep(regions, function(region){
+		return region.x === vector.x && region.y === vector.y;
+	})[0];
+}
+
+Game.prototype.getClaims = getClaims;
+function getClaims(){
 	var claims = [];
 
 	for (var i = this.players.length - 1; i >= 0; i--) {
@@ -49,9 +62,17 @@ function getRegions(){
 		claims = claims.concat(player.getClaims());
 	};
 
-	applyClaims(regions, claims);
+	return claims
+}
 
-	return regions;
+Game.prototype.removeClaims = removeClaims;
+function removeClaims(captures){
+	for (var i = 0; i < captures.length; i++) {
+		var region = captures[i];
+		var claim = region.claimed;
+		claim.player.removeClaim(claim.tileId, claim.regionId)
+		region.claimed = null;
+	};
 }
 
 Game.prototype.applyClaims = applyClaims;
@@ -70,21 +91,16 @@ function applyClaims(regions, claims){
 	};
 }
 
-Game.prototype.getLiberties = getLiberties;
-function getLiberties(regions, player, tileId, regionId){
-	var region = $.grep(regions, function(region){
+Game.prototype.getRegion = getRegion;
+function getRegion(regions, tileId, regionId){
+	return $.grep(regions, function(region){
 		return parseInt(region.tileId) === parseInt(tileId) && parseInt(region.id) === parseInt(regionId);
 	})[0];
-
-	if(!region.claimable) return false;
-
-	return getNeighbor(regions, player, region);
 }
 
-function getNeighbor(regions, player, region, startRegion, fromOrientation){
-	console.log('getNeighbor');
-
-	var liberties = [];
+Game.prototype.getNeighbors = getNeighbors;
+function getNeighbors(regions, region, excludeOrientation){
+	var neighbors = [];
 
 	var orientations = region.getOrientations(0);
 
@@ -92,7 +108,7 @@ function getNeighbor(regions, player, region, startRegion, fromOrientation){
 
 		var orientation = orientations[i];
 
-		if(fromOrientation === Orientation.getOpposite(orientation)){
+		if(Orientation.getOpposite(orientation) === excludeOrientation){
 			continue;
 		}
 
@@ -107,31 +123,109 @@ function getNeighbor(regions, player, region, startRegion, fromOrientation){
 			continue;
 		}
 
-		neighbor.mapped = true;
-
-
 		if(neighbor.claimable){
-			if(!neighbor.claimed){
-				liberties.push(neighbor);
-			}else{
-				if(neighbor.claimed.player && neighbor.claimed.player === player){
-					liberties = liberties.concat(getNeighbor(regions, player, neighbor, startRegion, orientation));
-				}else if(neighbor.claimed.player && neighbor.claimed.player !== player){
+			neighbors.push(neighbor);
+		}else{
+			neighbors = neighbors.concat(getNeighbors(regions, neighbor, orientation));
+		}
+	};
 
-					console.log('enimieLiberties', getNeighbor(regions, neighbor.claimed.player, neighbor, neighbor).length);
-				}
+	return neighbors;
+}
+
+Game.prototype.getCaptures = getCaptures;
+function getCaptures(regions, player, region){
+
+	var captures = [];
+
+	console.log(region.claimed);
+
+	if(region.claimed) return captures;
+
+	var neighbors = this.getNeighbors(regions, region);
+
+	for (var i = neighbors.length - 1; i >= 0; i--) {
+		var neighbor = neighbors[i];
+
+
+		if(neighbor.claimed && neighbor.claimed.player != player){
+
+
+			var liberties = this.getLiberties(regions, neighbor.claimed.player, neighbor);
+
+			if(liberties.length === 1){
+				captures = captures.concat(this.getGroup(regions, neighbor.claimed.player, neighbor));
+			}
+		}
+	};
+
+	return captures;
+}
+
+Game.prototype.getLiberties = getLiberties;
+function getLiberties(regions, player, region, startRegion){
+
+	if(!startRegion){
+		startRegion = region
+	}
+
+	var liberties = [];
+
+	var neighbors = getNeighbors(regions, region);
+
+	for (var i = neighbors.length - 1; i >= 0; i--) {
+		
+		var neighbor = neighbors[i];
+
+		if(neighbor === startRegion){
+			continue;
+		}
+
+		if(neighbor.claimed){
+			if(neighbor.claimed.player && neighbor.claimed.player === player){
+				liberties = liberties.concat(getLiberties(regions, player, neighbor, startRegion));
 			}
 		}else{
-			liberties = liberties.concat(getNeighbor(regions, player, neighbor, startRegion, orientation));
+			if(neighbor.claimable){
+				liberties.push(neighbor);
+			}else{
+				liberties = liberties.concat(getLiberties(regions, player, neighbor, startRegion));
+			}
 		}
-		
 	};
 
 	return liberties;
 }
 
-function getRegionAt(regions, vector){
-	return $.grep(regions, function(region){
-		return region.x === vector.x && region.y === vector.y;
-	})[0];
+
+Game.prototype.getGroup = getGroup;
+function getGroup(regions, player, region, startRegion){
+
+	if(!startRegion){
+		startRegion = region
+	}
+
+	var group = [];
+
+	var neighbors = getNeighbors(regions, region);
+
+	for (var i = neighbors.length - 1; i >= 0; i--) {
+		
+		var neighbor = neighbors[i];
+
+		if(neighbor === startRegion){
+			continue;
+		}
+
+		if(neighbor.claimed){
+			if(neighbor.claimed.player && neighbor.claimed.player === player){
+				group = group.concat(getGroup(regions, player, neighbor, startRegion));
+			}
+		}
+
+	};
+
+	group.push(region);
+
+	return group;
 }
