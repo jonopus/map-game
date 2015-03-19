@@ -26,6 +26,18 @@ function get(){
 	return orientations;
 }
 
+Orientation.getOpposite = getOpposite;
+function getOpposite(orientation){
+	switch(orientation){
+		case Orientation.XP: return Orientation.XM;
+		case Orientation.YP: return Orientation.YM;
+		case Orientation.ZP: return Orientation.ZM;
+		case Orientation.XM: return Orientation.XP;
+		case Orientation.YM: return Orientation.YP;
+		case Orientation.ZM: return Orientation.ZP;
+	}
+}
+
 Orientation.rotateArray = rotateArray;
 function rotateArray(array, delta){
 	var first = array.slice(0);

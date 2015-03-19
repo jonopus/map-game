@@ -22,8 +22,6 @@ var orthagonal = [
 
 module.exports = Renderer;
 function Renderer(selector) {
-	console.log('Renderer');
-
 	svg = d3.select("body")
 	.append("svg")
 	.attr("width", 1000)
@@ -72,8 +70,6 @@ function handleMouseoutRegion(){
 }
 
 function highlightRegion(region, index){
-	console.log('highlightRegion');
-
 	d3.select($('#' + region.tileId + '-' + region.id)[0]).transition().duration(300)
 	.style("opacity", .5);
 }
@@ -158,14 +154,19 @@ function renderRegion(region, index){
 		.attr("r", 10)
 		.attr("fill", '#555');
 
-		if(region.claim){
-			circle.attr("stroke", "red");
+
+		if(region.claimed){
+			console.log('region.claimed', region.claimed);
+
+			var color = region.claimed.player.color
+
+			circle.attr("stroke", color);
 
 			var circle = regionGroup.append("circle")
 			.attr("cx", cx*scale)
 			.attr("cy", cy*scale)
 			.attr("r", 6)
-			.attr("fill", 'red');
+			.attr("fill", color);
 		}
 	}
 

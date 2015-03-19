@@ -1,13 +1,13 @@
 module.exports = Player;
-function Player(id) {
-	console.log('Player');
+function Player(id, color) {
 	this.id = id;
+	this.color = color;
 	this.claims = [];
 }
 
 Player.prototype.claim = claim;
 function claim(tileId, regionId){
-	this.claims.push({tileId:tileId, regionId:regionId, playerId:this.id});
+	this.claims.push({tileId:tileId, regionId:regionId, player:this});
 
 	var claims = this.claims;
 

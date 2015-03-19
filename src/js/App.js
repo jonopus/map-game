@@ -6,8 +6,6 @@ var Renderer = require('./view/Renderer.js');
 //http://www.redblobgames.com/grids/hexagons/
 
 function App(){
-	console.log('App');
-
 	new Controller(new Game(), new Renderer('mapCanvas'));
 }
 

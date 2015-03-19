@@ -1,6 +1,5 @@
 module.exports = Game;
 function Game() {
-	console.log('Game');
 	this.tiles = [];
 	this.players = [];
 }
@@ -8,6 +7,17 @@ function Game() {
 Game.prototype.addPlayer = addPlayer;
 function addPlayer(player){
 	this.players.push(player);
+}
+
+Game.prototype.nextPlayer = nextPlayer;
+function nextPlayer(){
+
+	var index = this.players.indexOf(this.currentPlayer) +1;
+	if(index >= 0 && index < this.players.length){
+		return this.currentPlayer = this.players[index]
+	}else{
+		return this.currentPlayer = this.players[0]
+	}
 }
 
 Game.prototype.addTile = addTile;
@@ -20,22 +30,7 @@ function getTile(tileId){
 	return $.grep(this.tiles, function(tile, i){
 		return tile.id === parseInt(tileId)
 	})[0];
-}
-
-/*
-
-Game.prototype.getClaaimedRegions = getClaaimedRegions;
-function getClaaimedRegions(){
-
-	var claims = [];
-
-	for (var i = this.players.length - 1; i >= 0; i--) {
-		var player = this.players[i];
-		claims = claims.concat(tile.getClaaimedRegions());
-	};
-	return claims;
-}
-*/
+}var Orientation = require('./Orientation.js');
 
 Game.prototype.getRegions = getRegions;
 function getRegions(){
@@ -46,40 +41,63 @@ function getRegions(){
 		var tile = this.tiles[i];
 		regions = regions.concat(tile.getRegions());
 	};
+
+	var claims = [];
+
+	for (var i = this.players.length - 1; i >= 0; i--) {
+		var player = this.players[i]
+		claims = claims.concat(player.getClaims());
+	};
+
+	applyClaims(regions, claims);
+
 	return regions;
 }
 
+Game.prototype.applyClaims = applyClaims;
+function applyClaims(regions, claims){
+	
+	for (var c = claims.length - 1; c >= 0; c--) {
+		var claim = claims[c];
+
+		for (var r = regions.length - 1; r >= 0; r--) {
+			var region = regions[r];
+
+			if (parseInt(region.tileId) === parseInt(claim.tileId) && parseInt(region.id) === parseInt(claim.regionId)) {
+				region.claimed = claim;
+			}
+		};
+	};
+}
+
 Game.prototype.getLiberties = getLiberties;
-function getLiberties(tileId, regionId){
-	console.log('getLiberties', tileId, regionId);
-
-	var regions = this.getRegions();
-
-
-
+function getLiberties(regions, player, tileId, regionId){
 	var region = $.grep(regions, function(region){
 		return parseInt(region.tileId) === parseInt(tileId) && parseInt(region.id) === parseInt(regionId);
 	})[0];
 
 	if(!region.claimable) return false;
 
-	return getNeighbor(regions, region);
+	return getNeighbor(regions, player, region);
 }
 
-function getNeighbor(regions, region, startRegion){
+function getNeighbor(regions, player, region, startRegion, fromOrientation){
 	var liberties = [];
 
 	var orientations = region.getOrientations(0);
 
 	for (var i = orientations.length - 1; i >= 0; i--) {
 
+		var orientation = orientations[i];
+
+		if(fromOrientation === Orientation.getOpposite(orientation)){
+			continue;
+		}
 
 		var vector = {
-			x:region.x + orientations[i].vector.x,
-			y:region.y + orientations[i].vector.y
+			x:region.x + orientation.vector.x,
+			y:region.y + orientation.vector.y
 		};
-
-		console.log('neighbor vector', vector, orientations[i]);
 
 		var neighbor = getRegionAt(regions, vector)
 
@@ -88,17 +106,13 @@ function getNeighbor(regions, region, startRegion){
 		}
 
 		neighbor.mapped = true;
-			
 
 		if(neighbor.claimable){
-
-			console.log('neighbor.claimed', neighbor.claimed);
-
 			if(!neighbor.claimed){
 				liberties.push(neighbor);
 			}
 		}else{
-			liberties = liberties.concat(getNeighbor(regions, neighbor, startRegion));
+			liberties = liberties.concat(getNeighbor(regions, player, neighbor, startRegion, orientation));
 		}
 		
 	};

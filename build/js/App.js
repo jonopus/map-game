@@ -9512,8 +9512,6 @@ var Renderer = require('./view/Renderer.js');
 //http://www.redblobgames.com/grids/hexagons/
 
 function App(){
-	console.log('App');
-
 	new Controller(new Game(), new Renderer('mapCanvas'));
 }
 
@@ -9528,19 +9526,16 @@ var Player = require('../model/Player.js');
 
 var game;
 var gameRenderer;
-var player;
 
 module.exports = Controller;
 function Controller(game, renderer) {
-	console.log('Controller');
-
 	this.game = game;
 	gameRenderer = renderer;
 
 	$('body').on('REGION_CLICKED', $.proxy(this.handleRegionClicked, this))
 
-	player = new Player('A');
-	this.game.addPlayer(player);
+	this.game.addPlayer(new Player('Red', 'red'));
+	this.game.addPlayer(new Player('Blue', 'blue'));
 
 	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.XP));
 	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.YP));
@@ -9548,6 +9543,7 @@ function Controller(game, renderer) {
 	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.XM));
 	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.YM));
 	this.game.addTile(new Tile(Region.O3, 0, 0, Orientation.ZM));
+
 	/*
 	this.game.addTile(new Tile(Region.O3, -4, -3));
 	this.game.addTile(new Tile(Region.O2, 0, -3));
@@ -9558,44 +9554,28 @@ function Controller(game, renderer) {
 	this.game.addTile(new Tile(Region.C1, 2, 1));
 	*/
 
-
 	gameRenderer.render(this.game.getRegions());
 }
 
 Controller.prototype.handleRegionClicked = handleRegionClicked;
 function handleRegionClicked(event, tileId, regionId) {
-	console.log('handleRegionClicked', tileId, regionId);
-
-	player.claim(tileId, regionId);
-
 	var regions = this.game.getRegions();
 
-	var claims = player.getClaims();
-	
-	for (var c = claims.length - 1; c >= 0; c--) {
-		var claim = claims[c];
+	var player = this.game.nextPlayer()
 
-		for (var r = regions.length - 1; r >= 0; r--) {
-			var region = regions[r];
+	var liberties = this.game.getLiberties(regions, player, tileId, regionId);
 
-			if (parseInt(region.tileId) === parseInt(claim.tileId) && parseInt(region.id) === parseInt(claim.regionId)) {
-				region.claim = player.id
-			}
-		};
-	};
+	if(liberties.length){
+		player.claim(tileId, regionId);
+		this.game.applyClaims(regions, player.getClaims());
+	}
 	
 	gameRenderer.render(regions);
-
-
-	var liberties = this.game.getLiberties(tileId, regionId)
-	console.log('liberties', liberties);
-	
 	gameRenderer.highlight(liberties);
 }
 },{"../model/Orientation.js":5,"../model/Player.js":6,"../model/Region.js":7,"../model/Tile.js":8}],4:[function(require,module,exports){
 module.exports = Game;
 function Game() {
-	console.log('Game');
 	this.tiles = [];
 	this.players = [];
 }
@@ -9603,6 +9583,17 @@ function Game() {
 Game.prototype.addPlayer = addPlayer;
 function addPlayer(player){
 	this.players.push(player);
+}
+
+Game.prototype.nextPlayer = nextPlayer;
+function nextPlayer(){
+
+	var index = this.players.indexOf(this.currentPlayer) +1;
+	if(index >= 0 && index < this.players.length){
+		return this.currentPlayer = this.players[index]
+	}else{
+		return this.currentPlayer = this.players[0]
+	}
 }
 
 Game.prototype.addTile = addTile;
@@ -9615,22 +9606,7 @@ function getTile(tileId){
 	return $.grep(this.tiles, function(tile, i){
 		return tile.id === parseInt(tileId)
 	})[0];
-}
-
-/*
-
-Game.prototype.getClaaimedRegions = getClaaimedRegions;
-function getClaaimedRegions(){
-
-	var claims = [];
-
-	for (var i = this.players.length - 1; i >= 0; i--) {
-		var player = this.players[i];
-		claims = claims.concat(tile.getClaaimedRegions());
-	};
-	return claims;
-}
-*/
+}var Orientation = require('./Orientation.js');
 
 Game.prototype.getRegions = getRegions;
 function getRegions(){
@@ -9641,40 +9617,63 @@ function getRegions(){
 		var tile = this.tiles[i];
 		regions = regions.concat(tile.getRegions());
 	};
+
+	var claims = [];
+
+	for (var i = this.players.length - 1; i >= 0; i--) {
+		var player = this.players[i]
+		claims = claims.concat(player.getClaims());
+	};
+
+	applyClaims(regions, claims);
+
 	return regions;
 }
 
+Game.prototype.applyClaims = applyClaims;
+function applyClaims(regions, claims){
+	
+	for (var c = claims.length - 1; c >= 0; c--) {
+		var claim = claims[c];
+
+		for (var r = regions.length - 1; r >= 0; r--) {
+			var region = regions[r];
+
+			if (parseInt(region.tileId) === parseInt(claim.tileId) && parseInt(region.id) === parseInt(claim.regionId)) {
+				region.claimed = claim;
+			}
+		};
+	};
+}
+
 Game.prototype.getLiberties = getLiberties;
-function getLiberties(tileId, regionId){
-	console.log('getLiberties', tileId, regionId);
-
-	var regions = this.getRegions();
-
-
-
+function getLiberties(regions, player, tileId, regionId){
 	var region = $.grep(regions, function(region){
 		return parseInt(region.tileId) === parseInt(tileId) && parseInt(region.id) === parseInt(regionId);
 	})[0];
 
 	if(!region.claimable) return false;
 
-	return getNeighbor(regions, region);
+	return getNeighbor(regions, player, region);
 }
 
-function getNeighbor(regions, region, startRegion){
+function getNeighbor(regions, player, region, startRegion, fromOrientation){
 	var liberties = [];
 
 	var orientations = region.getOrientations(0);
 
 	for (var i = orientations.length - 1; i >= 0; i--) {
 
+		var orientation = orientations[i];
+
+		if(fromOrientation === Orientation.getOpposite(orientation)){
+			continue;
+		}
 
 		var vector = {
-			x:region.x + orientations[i].vector.x,
-			y:region.y + orientations[i].vector.y
+			x:region.x + orientation.vector.x,
+			y:region.y + orientation.vector.y
 		};
-
-		console.log('neighbor vector', vector, orientations[i]);
 
 		var neighbor = getRegionAt(regions, vector)
 
@@ -9683,17 +9682,13 @@ function getNeighbor(regions, region, startRegion){
 		}
 
 		neighbor.mapped = true;
-			
 
 		if(neighbor.claimable){
-
-			console.log('neighbor.claimed', neighbor.claimed);
-
 			if(!neighbor.claimed){
 				liberties.push(neighbor);
 			}
 		}else{
-			liberties = liberties.concat(getNeighbor(regions, neighbor, startRegion));
+			liberties = liberties.concat(getNeighbor(regions, player, neighbor, startRegion, orientation));
 		}
 		
 	};
@@ -9706,7 +9701,7 @@ function getRegionAt(regions, vector){
 		return region.x === vector.x && region.y === vector.y;
 	})[0];
 }
-},{}],5:[function(require,module,exports){
+},{"./Orientation.js":5}],5:[function(require,module,exports){
 module.exports = Orientation;
 function Orientation(index, angle, vector){
 	this.index = index;
@@ -9733,6 +9728,18 @@ var orientations = [
 Orientation.get = get;
 function get(){
 	return orientations;
+}
+
+Orientation.getOpposite = getOpposite;
+function getOpposite(orientation){
+	switch(orientation){
+		case Orientation.XP: return Orientation.XM;
+		case Orientation.YP: return Orientation.YM;
+		case Orientation.ZP: return Orientation.ZM;
+		case Orientation.XM: return Orientation.XP;
+		case Orientation.YM: return Orientation.YP;
+		case Orientation.ZM: return Orientation.ZP;
+	}
 }
 
 Orientation.rotateArray = rotateArray;
@@ -9790,15 +9797,15 @@ function rotatePoint(point, orientation){
 }
 },{}],6:[function(require,module,exports){
 module.exports = Player;
-function Player(id) {
-	console.log('Player');
+function Player(id, color) {
 	this.id = id;
+	this.color = color;
 	this.claims = [];
 }
 
 Player.prototype.claim = claim;
 function claim(tileId, regionId){
-	this.claims.push({tileId:tileId, regionId:regionId, playerId:this.id});
+	this.claims.push({tileId:tileId, regionId:regionId, player:this});
 
 	var claims = this.claims;
 
@@ -9910,7 +9917,6 @@ function Tile(regions, x, y, orientation) {
 	this.x = x;
 	this.y = y;
 	this.orientation = orientation || Orientation.XP;
-	console.log('Tile');
 	this.regions = regions;
 }
 
@@ -9965,8 +9971,6 @@ var orthagonal = [
 
 module.exports = Renderer;
 function Renderer(selector) {
-	console.log('Renderer');
-
 	svg = d3.select("body")
 	.append("svg")
 	.attr("width", 1000)
@@ -10015,8 +10019,6 @@ function handleMouseoutRegion(){
 }
 
 function highlightRegion(region, index){
-	console.log('highlightRegion');
-
 	d3.select($('#' + region.tileId + '-' + region.id)[0]).transition().duration(300)
 	.style("opacity", .5);
 }
@@ -10101,14 +10103,19 @@ function renderRegion(region, index){
 		.attr("r", 10)
 		.attr("fill", '#555');
 
-		if(region.claim){
-			circle.attr("stroke", "red");
+
+		if(region.claimed){
+			console.log('region.claimed', region.claimed);
+
+			var color = region.claimed.player.color
+
+			circle.attr("stroke", color);
 
 			var circle = regionGroup.append("circle")
 			.attr("cx", cx*scale)
 			.attr("cy", cy*scale)
 			.attr("r", 6)
-			.attr("fill", 'red');
+			.attr("fill", color);
 		}
 	}
 

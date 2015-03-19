@@ -10,7 +10,6 @@ function Tile(regions, x, y, orientation) {
 	this.x = x;
 	this.y = y;
 	this.orientation = orientation || Orientation.XP;
-	console.log('Tile');
 	this.regions = regions;
 }
 
