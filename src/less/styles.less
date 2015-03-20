@@ -8,8 +8,48 @@
 		fill: #550055;
 	}
 }
+.illegal {
+	.hexagon {
+		fill: #550000;
+	}
+}
 .region {
 	.hexagon {
 		opacity: .8
+	}
+}
+
+.hexagon {
+	-webkit-transition: fill .15s ease-in-out;
+	-moz-transition: fill .15s ease-in-out;
+	-ms-transition: fill .15s ease-in-out;
+	-o-transition: fill .15s ease-in-out;
+	transition: fill .15s ease-in-out;
+}
+
+.preview-claimed {
+	.claimable,
+	.claim-mark {
+		/*scale*/
+	}
+}
+
+.preview-claimed.preview-red,
+.claimed.red {
+	.claim-mark {
+		fill: red;
+	}
+	.claimable {
+		stroke: red;
+	}
+}
+
+.preview-claimed.preview-blue,
+.claimed.blue {
+	.claim-mark {
+		fill: blue;
+	}
+	.claimable {
+		stroke: blue;
 	}
 }

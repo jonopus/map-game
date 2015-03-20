@@ -9542,6 +9542,24 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.O3, 0, 0, Orientation.XM));
 	game.addTile(new Tile(Region.O3, 0, 0, Orientation.YM));
 	game.addTile(new Tile(Region.O3, 0, 0, Orientation.ZM));
+	game.addTile(new Tile(Region.O3, 0, 0, Orientation.XP));
+	
+	game.addTile(new Tile(Region.O2, 7, -5, Orientation.ZP));
+	game.addTile(new Tile(Region.C3, 7, -5, Orientation.YP));
+	game.addTile(new Tile(Region.C2, -1, -3, Orientation.ZP));
+
+	game.addTile(new Tile(Region.C1, 5, 2, Orientation.XM));
+
+	game.addTile(new Tile(Region.O1, 5, 2, Orientation.ZP));
+	game.addTile(new Tile(Region.O1, 2, 6, Orientation.ZM));
+	game.addTile(new Tile(Region.O1, 6, 5, Orientation.ZP));
+	
+
+	game.addPlayer(new Player('Red', 'red'));
+	game.addPlayer(new Player('Blue', 'blue'));
+	game.nextPlayer()
+
+	/*
 	game.addTile(new Tile(Region.O3, 4, -1, Orientation.YP));
 	game.addTile(new Tile(Region.O3, 4, -1, Orientation.XP));
 	game.addTile(new Tile(Region.O3, 4, -1, Orientation.ZM));
@@ -9549,12 +9567,6 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.O3, -3, 4, Orientation.XP));
 	game.addTile(new Tile(Region.O3, 1, 3, Orientation.YP));
 	game.addTile(new Tile(Region.O3, 1, 3, Orientation.XP));
-
-	game.addPlayer(new Player('Red', 'red'));
-	game.addPlayer(new Player('Blue', 'blue'));
-	game.nextPlayer()
-
-	/*
 	game.addTile(new Tile(Region.O3, -4, -3));
 	game.addTile(new Tile(Region.O2, 0, -3));
 	game.addTile(new Tile(Region.O1, 4, -3));
@@ -9579,13 +9591,32 @@ function handleRegionMouseover(event, tileId, regionId) {
 	var liberties = game.getLiberties(regions, player, region);
 	var captures = game.getCaptures(regions, player, region);
 
-	renderer.highlight('liberty', liberties);
-	renderer.highlight('capture', captures);
+	if(!region.claimed){
+		renderer.highlight('capture', captures);
+		renderer.highlight('liberty', liberties);
+	}else{
+		renderer.highlight('capture', []);
+		renderer.highlight('liberty', []);
+	}
+
+	if(region.claimed || (!liberties.length && !captures.length)){
+		renderer.highlight('illegal', [region]);
+	}else{
+		renderer.highlight('preview-claimed', [region]);
+		renderer.highlight('preview-' + player.color, [region]);
+	}
+
 }
 
 Controller.prototype.handleRegionMouseout = handleRegionMouseout;
 function handleRegionMouseout(event, tileId, regionId) {
-	renderer.highlight('highlight', []);
+	renderer.highlight('capture', []);
+	renderer.highlight('liberty', []);
+	renderer.highlight('illegal', []);
+	
+	renderer.highlight('preview-claimed', []);
+	renderer.highlight('preview-red', []);
+	renderer.highlight('preview-blue', []);
 }
 
 Controller.prototype.handleRegionClicked = handleRegionClicked;
@@ -9709,8 +9740,19 @@ function getRegion(regions, tileId, regionId){
 }
 
 Game.prototype.getNeighbors = getNeighbors;
-function getNeighbors(regions, region, excludeOrientation){
+function getNeighbors(regions, region, excludeOrientation, loggedRegions){
+
 	var neighbors = [];
+
+	if(!loggedRegions){
+		loggedRegions = [];
+	}
+
+	if(loggedRegions.indexOf(region) >= 0){
+		return neighbors;
+	}
+
+	loggedRegions.push(region);
 
 	var orientations = region.getOrientations(0);
 
@@ -9736,7 +9778,7 @@ function getNeighbors(regions, region, excludeOrientation){
 		if(neighbor.claimable){
 			neighbors.push(neighbor);
 		}else{
-			neighbors = neighbors.concat(getNeighbors(regions, neighbor, orientation));
+			neighbors = neighbors.concat(getNeighbors(regions, neighbor, orientation, loggedRegions));
 		}
 	};
 
@@ -9773,13 +9815,23 @@ function getCaptures(regions, player, region){
 }
 
 Game.prototype.getLiberties = getLiberties;
-function getLiberties(regions, player, region, startRegion){
+function getLiberties(regions, player, region, startRegion, loggedRegions){
 
 	if(!startRegion){
 		startRegion = region
 	}
 
 	var liberties = [];
+
+	if(!loggedRegions){
+		loggedRegions = [];
+	}
+
+	if(loggedRegions.indexOf(region) >= 0){
+		return liberties;
+	}
+
+	loggedRegions.push(region);
 
 	var neighbors = getNeighbors(regions, region);
 
@@ -9793,13 +9845,13 @@ function getLiberties(regions, player, region, startRegion){
 
 		if(neighbor.claimed){
 			if(neighbor.claimed.player && neighbor.claimed.player === player){
-				liberties = liberties.concat(getLiberties(regions, player, neighbor, startRegion));
+				liberties = liberties.concat(getLiberties(regions, player, neighbor, startRegion, loggedRegions));
 			}
 		}else{
 			if(neighbor.claimable){
 				liberties.push(neighbor);
 			}else{
-				liberties = liberties.concat(getLiberties(regions, player, neighbor, startRegion));
+				liberties = liberties.concat(getLiberties(regions, player, neighbor, startRegion, loggedRegions));
 			}
 		}
 	};
@@ -9809,13 +9861,23 @@ function getLiberties(regions, player, region, startRegion){
 
 
 Game.prototype.getGroup = getGroup;
-function getGroup(regions, player, region, startRegion){
+function getGroup(regions, player, region, startRegion, loggedRegions){
 
 	if(!startRegion){
 		startRegion = region
 	}
 
 	var group = [];
+
+	if(!loggedRegions){
+		loggedRegions = [];
+	}
+
+	if(loggedRegions.indexOf(region) >= 0){
+		return group;
+	}
+
+	loggedRegions.push(region);
 
 	var neighbors = getNeighbors(regions, region);
 
@@ -9829,7 +9891,7 @@ function getGroup(regions, player, region, startRegion){
 
 		if(neighbor.claimed){
 			if(neighbor.claimed.player && neighbor.claimed.player === player){
-				group = group.concat(getGroup(regions, player, neighbor, startRegion));
+				group = group.concat(getGroup(regions, player, neighbor, startRegion, loggedRegions));
 			}
 		}
 
@@ -10095,7 +10157,7 @@ function getRegion(regionId){
 var d3 = require('d3');
 
 var svg;
-var scale = 25;
+var scale = 40;
 var d2 = Math.sqrt(3);
 var hexagon = [
 	{x:d2,		y:.5},
@@ -10118,10 +10180,10 @@ module.exports = Renderer;
 function Renderer(selector) {
 	svg = d3.select("body")
 	.append("svg")
-	.attr("width", 1000)
-	.attr("height", 800)
+	.attr("width", 1900)
+	.attr("height", 900)
 	.append("g")
-	.attr("transform", "translate(500,200)");
+	.attr("transform", "translate(950,350)");
 
 	$('svg').on('click', '.region', handleClickRegion);
 	$('svg').on('mouseover', '.region', handleMouseoverRegion);
@@ -10207,7 +10269,10 @@ function renderRegion(region, index){
 	var regionGroup = svg.append("g")
 	.attr("id", 'region-' + region.tileId + '-' + region.id)
 	.attr("transform", "translate("+(x*scale)+","+(y*scale)+")")
-	.attr("class", 'region')
+	.attr("class", 
+		'region'
+		+ (region.claimed ? ' claimed ' + region.claimed.player.color : '')
+	)
 	.attr("data-region-id", region.id)
 	.attr("data-tile-id", region.tileId)
 	.attr("data-x", region.x)
@@ -10247,24 +10312,19 @@ function renderRegion(region, index){
 
 	if(region.claimable){
 
-	var circle = regionGroup.append("circle")
+		regionGroup.append("circle")
+		.attr("class", 'claimable')
 		.attr("cx", cx*scale)
 		.attr("cy", cy*scale)
 		.attr("r", 10)
 		.attr("fill", '#555');
 
 
-		if(region.claimed){
-			var color = region.claimed.player.color
-
-			circle.attr("stroke", color);
-
-			var circle = regionGroup.append("circle")
-			.attr("cx", cx*scale)
-			.attr("cy", cy*scale)
-			.attr("r", 6)
-			.attr("fill", color);
-		}
+		regionGroup.append("circle")
+		.attr("class", 'claim-mark')
+		.attr("cx", cx*scale)
+		.attr("cy", cy*scale)
+		.attr("r", 6);
 	}
 
 }

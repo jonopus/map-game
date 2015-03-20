@@ -187,6 +187,36 @@ th {
 .capture .hexagon {
   fill: #550055;
 }
+.illegal .hexagon {
+  fill: #550000;
+}
 .region .hexagon {
   opacity: 0.8;
+}
+.hexagon {
+  -webkit-transition: fill 0.15s ease-in-out;
+  -moz-transition: fill 0.15s ease-in-out;
+  -ms-transition: fill 0.15s ease-in-out;
+  -o-transition: fill 0.15s ease-in-out;
+  transition: fill 0.15s ease-in-out;
+}
+.preview-claimed .claimable,
+.preview-claimed .claim-mark {
+  /*scale*/
+}
+.preview-claimed.preview-red .claim-mark,
+.claimed.red .claim-mark {
+  fill: red;
+}
+.preview-claimed.preview-red .claimable,
+.claimed.red .claimable {
+  stroke: red;
+}
+.preview-claimed.preview-blue .claim-mark,
+.claimed.blue .claim-mark {
+  fill: blue;
+}
+.preview-claimed.preview-blue .claimable,
+.claimed.blue .claimable {
+  stroke: blue;
 }

@@ -99,8 +99,19 @@ function getRegion(regions, tileId, regionId){
 }
 
 Game.prototype.getNeighbors = getNeighbors;
-function getNeighbors(regions, region, excludeOrientation){
+function getNeighbors(regions, region, excludeOrientation, loggedRegions){
+
 	var neighbors = [];
+
+	if(!loggedRegions){
+		loggedRegions = [];
+	}
+
+	if(loggedRegions.indexOf(region) >= 0){
+		return neighbors;
+	}
+
+	loggedRegions.push(region);
 
 	var orientations = region.getOrientations(0);
 
@@ -126,7 +137,7 @@ function getNeighbors(regions, region, excludeOrientation){
 		if(neighbor.claimable){
 			neighbors.push(neighbor);
 		}else{
-			neighbors = neighbors.concat(getNeighbors(regions, neighbor, orientation));
+			neighbors = neighbors.concat(getNeighbors(regions, neighbor, orientation, loggedRegions));
 		}
 	};
 
@@ -163,13 +174,23 @@ function getCaptures(regions, player, region){
 }
 
 Game.prototype.getLiberties = getLiberties;
-function getLiberties(regions, player, region, startRegion){
+function getLiberties(regions, player, region, startRegion, loggedRegions){
 
 	if(!startRegion){
 		startRegion = region
 	}
 
 	var liberties = [];
+
+	if(!loggedRegions){
+		loggedRegions = [];
+	}
+
+	if(loggedRegions.indexOf(region) >= 0){
+		return liberties;
+	}
+
+	loggedRegions.push(region);
 
 	var neighbors = getNeighbors(regions, region);
 
@@ -183,13 +204,13 @@ function getLiberties(regions, player, region, startRegion){
 
 		if(neighbor.claimed){
 			if(neighbor.claimed.player && neighbor.claimed.player === player){
-				liberties = liberties.concat(getLiberties(regions, player, neighbor, startRegion));
+				liberties = liberties.concat(getLiberties(regions, player, neighbor, startRegion, loggedRegions));
 			}
 		}else{
 			if(neighbor.claimable){
 				liberties.push(neighbor);
 			}else{
-				liberties = liberties.concat(getLiberties(regions, player, neighbor, startRegion));
+				liberties = liberties.concat(getLiberties(regions, player, neighbor, startRegion, loggedRegions));
 			}
 		}
 	};
@@ -199,13 +220,23 @@ function getLiberties(regions, player, region, startRegion){
 
 
 Game.prototype.getGroup = getGroup;
-function getGroup(regions, player, region, startRegion){
+function getGroup(regions, player, region, startRegion, loggedRegions){
 
 	if(!startRegion){
 		startRegion = region
 	}
 
 	var group = [];
+
+	if(!loggedRegions){
+		loggedRegions = [];
+	}
+
+	if(loggedRegions.indexOf(region) >= 0){
+		return group;
+	}
+
+	loggedRegions.push(region);
 
 	var neighbors = getNeighbors(regions, region);
 
@@ -219,7 +250,7 @@ function getGroup(regions, player, region, startRegion){
 
 		if(neighbor.claimed){
 			if(neighbor.claimed.player && neighbor.claimed.player === player){
-				group = group.concat(getGroup(regions, player, neighbor, startRegion));
+				group = group.concat(getGroup(regions, player, neighbor, startRegion, loggedRegions));
 			}
 		}
 

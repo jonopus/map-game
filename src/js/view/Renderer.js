@@ -1,7 +1,7 @@
 var d3 = require('d3');
 
 var svg;
-var scale = 25;
+var scale = 40;
 var d2 = Math.sqrt(3);
 var hexagon = [
 	{x:d2,		y:.5},
@@ -24,10 +24,10 @@ module.exports = Renderer;
 function Renderer(selector) {
 	svg = d3.select("body")
 	.append("svg")
-	.attr("width", 1000)
-	.attr("height", 800)
+	.attr("width", 1900)
+	.attr("height", 900)
 	.append("g")
-	.attr("transform", "translate(500,200)");
+	.attr("transform", "translate(950,350)");
 
 	$('svg').on('click', '.region', handleClickRegion);
 	$('svg').on('mouseover', '.region', handleMouseoverRegion);
@@ -113,7 +113,10 @@ function renderRegion(region, index){
 	var regionGroup = svg.append("g")
 	.attr("id", 'region-' + region.tileId + '-' + region.id)
 	.attr("transform", "translate("+(x*scale)+","+(y*scale)+")")
-	.attr("class", 'region')
+	.attr("class", 
+		'region'
+		+ (region.claimed ? ' claimed ' + region.claimed.player.color : '')
+	)
 	.attr("data-region-id", region.id)
 	.attr("data-tile-id", region.tileId)
 	.attr("data-x", region.x)
@@ -153,24 +156,19 @@ function renderRegion(region, index){
 
 	if(region.claimable){
 
-	var circle = regionGroup.append("circle")
+		regionGroup.append("circle")
+		.attr("class", 'claimable')
 		.attr("cx", cx*scale)
 		.attr("cy", cy*scale)
 		.attr("r", 10)
 		.attr("fill", '#555');
 
 
-		if(region.claimed){
-			var color = region.claimed.player.color
-
-			circle.attr("stroke", color);
-
-			var circle = regionGroup.append("circle")
-			.attr("cx", cx*scale)
-			.attr("cy", cy*scale)
-			.attr("r", 6)
-			.attr("fill", color);
-		}
+		regionGroup.append("circle")
+		.attr("class", 'claim-mark')
+		.attr("cx", cx*scale)
+		.attr("cy", cy*scale)
+		.attr("r", 6);
 	}
 
 }
