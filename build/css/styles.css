@@ -200,9 +200,18 @@ th {
   -o-transition: fill 0.15s ease-in-out;
   transition: fill 0.15s ease-in-out;
 }
+.claimable,
+.claim-mark {
+  -webkit-transition: transform 0.25s ease-out;
+  -moz-transition: transform 0.25s ease-out;
+  -ms-transition: transform 0.25s ease-out;
+  -o-transition: transform 0.25s ease-out;
+  transition: transform 0.25s ease-out;
+  transform: scale(1);
+}
 .preview-claimed .claimable,
 .preview-claimed .claim-mark {
-  /*scale*/
+  transform: scale(1.45);
 }
 .preview-claimed.preview-red .claim-mark,
 .claimed.red .claim-mark {

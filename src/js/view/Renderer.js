@@ -1,33 +1,42 @@
 var d3 = require('d3');
 
 var svg;
+var mainGorup;
 var scale = 40;
 var d2 = Math.sqrt(3);
 var hexagon = [
-	{x:d2,		y:.5},
-	{x:d2,		y:1.5},
-	{x:d2*.5,	y:2},
-	{x:0,		y:1.5},
-	{x:0,		y:.5},
-	{x:d2*.5,	y:0}
+	{x:(d2*-.5) + d2,		y:(-1) + .5},
+	{x:(d2*-.5) + d2,		y:(-1) + 1.5},
+	{x:(d2*-.5) + d2*.5,	y:(-1) + 2},
+	{x:(d2*-.5) + 0,		y:(-1) + 1.5},
+	{x:(d2*-.5) + 0,		y:(-1) + .5},
+	{x:(d2*-.5) + d2*.5,	y:(-1) + 0}
 ]
 var orthagonal = [
-	{x:d2,		y:1},
-	{x:d2*.75,	y:1.75},
-	{x:d2*.25,	y:1.75},
-	{x:0,		y:1},
-	{x:d2*.25,	y:.25},
-	{x:d2*.75,	y:.25}
+	{x:(d2*-.5) + d2,		y:(-1) + 1},
+	{x:(d2*-.5) + d2*.75,	y:(-1) + 1.75},
+	{x:(d2*-.5) + d2*.25,	y:(-1) + 1.75},
+	{x:(d2*-.5) + 0,		y:(-1) + 1},
+	{x:(d2*-.5) + d2*.25,	y:(-1) + .25},
+	{x:(d2*-.5) + d2*.75,	y:(-1) + .25}
 ]
 
 module.exports = Renderer;
 function Renderer(selector) {
 	svg = d3.select("body")
 	.append("svg")
-	.attr("width", 1900)
+	.attr("width", 1000)
 	.attr("height", 900)
-	.append("g")
-	.attr("transform", "translate(950,350)");
+	
+	mainGorup = svg.append("g")
+	.attr("transform", "translate(500,350)");
+
+	var regionGroup = svg.append("g")
+	
+	regionGroup.append("circle")
+	.attr("r", 5)
+	.attr("fill", '#555')
+	.attr("transform", "translate(500,350)");
 
 	$('svg').on('click', '.region', handleClickRegion);
 	$('svg').on('mouseover', '.region', handleMouseoverRegion);
@@ -36,7 +45,7 @@ function Renderer(selector) {
 
 Renderer.prototype.render = render;
 function render(regions){
-	svg.selectAll("*").remove();
+	mainGorup.selectAll("*").remove();
 
 	for (var i = regions.length - 1; i >= 0; i--) {
 		renderRegion(regions[i], i);
@@ -78,10 +87,10 @@ function handleMouseoutRegion(){
 }
 
 function renderRegion(region, index){
-	var x = ((region.x * d2) + (region.y * (d2*.5)));
+	var x = (((region.x) * d2) + (region.y * (d2*.5)));
 	var y = (region.y)*1.5;
-	var cx = (d2*.5);
-	var cy = 1;
+	var cx = 0;
+	var cy = 0;
 
 	var polygon = [];
 	var lines = []
@@ -110,7 +119,7 @@ function renderRegion(region, index){
 		}
 	};
 
-	var regionGroup = svg.append("g")
+	var regionGroup = mainGorup.append("g")
 	.attr("id", 'region-' + region.tileId + '-' + region.id)
 	.attr("transform", "translate("+(x*scale)+","+(y*scale)+")")
 	.attr("class", 
@@ -158,17 +167,13 @@ function renderRegion(region, index){
 
 		regionGroup.append("circle")
 		.attr("class", 'claimable')
-		.attr("cx", cx*scale)
-		.attr("cy", cy*scale)
-		.attr("r", 10)
+		.attr("r", 14)
 		.attr("fill", '#555');
 
 
 		regionGroup.append("circle")
 		.attr("class", 'claim-mark')
-		.attr("cx", cx*scale)
-		.attr("cy", cy*scale)
-		.attr("r", 6);
+		.attr("r", 8);
 	}
 
 }
