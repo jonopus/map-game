@@ -7,14 +7,9 @@ function Player(id, color) {
 
 Player.prototype.removeClaim = removeClaim;
 function removeClaim(tileId, regionId){
-
-	console.log('this.claim a', tileId, regionId, this.claims);
-
 	this.claims = $.grep(this.claims, function(item){
 		return !(item.tileId === tileId && item.regionId === regionId);
 	})
-
-	console.log('this.claims b', tileId, regionId, this.claims);
 }
 
 Player.prototype.claim = claim;

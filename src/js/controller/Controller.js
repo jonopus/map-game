@@ -11,41 +11,12 @@ function Controller(newGame, newRenderer) {
 	game = newGame;
 	renderer = newRenderer;
 
-	$('body').on('REGION_CLICKED', $.proxy(this.handleRegionClicked, this))
-	$('body').on('REGION_MOUSEOVER', $.proxy(this.handleRegionMouseover, this))
-	$('body').on('REGION_MOUSEOUT', $.proxy(this.handleRegionMouseout, this))
+	$('body').on('REGION_CLICKED', $.proxy(this.handleRegionClicked, this));
+	$('body').on('REGION_MOUSEOVER', $.proxy(this.handleRegionMouseover, this));
+	$('body').on('REGION_MOUSEOUT', $.proxy(this.handleRegionMouseout, this));
+	$('body').on('STAGE_MOUSEMOVE', $.proxy(this.handleStageMouseMove, this));
 
-	//game.addTile(new Tile(Region.O3, 0, 0, Orientation.XP));
-	game.addTile(new Tile(Region.O3, 0, 0, Orientation.YP));
-	game.addTile(new Tile(Region.O3, 0, 0, Orientation.ZP));
-	game.addTile(new Tile(Region.O3, 0, 0, Orientation.XM));
-	game.addTile(new Tile(Region.O3, 0, 0, Orientation.YM));
-	game.addTile(new Tile(Region.O3, 0, 0, Orientation.ZM));
-	game.addTile(new Tile(Region.O3, 0, 0, Orientation.XP));
-	
-	game.addTile(new Tile(Region.O2, 7, -5, Orientation.ZP));
-	game.addTile(new Tile(Region.C3, 7, -5, Orientation.YP));
-	game.addTile(new Tile(Region.C2, -1, -3, Orientation.ZP));
-
-	game.addTile(new Tile(Region.C1, 5, 2, Orientation.XM));
-
-	game.addTile(new Tile(Region.O1, 5, 2, Orientation.ZP));
-	game.addTile(new Tile(Region.O1, 2, 6, Orientation.ZM));
-	game.addTile(new Tile(Region.O1, 6, 5, Orientation.ZP));
-	
-
-	game.addPlayer(new Player('Red', 'red'));
-	game.addPlayer(new Player('Blue', 'blue'));
-	game.nextPlayer()
-
-	/*
-	game.addTile(new Tile(Region.O3, 4, -1, Orientation.YP));
-	game.addTile(new Tile(Region.O3, 4, -1, Orientation.XP));
-	game.addTile(new Tile(Region.O3, 4, -1, Orientation.ZM));
-	game.addTile(new Tile(Region.O3, 4, -1, Orientation.YM));
-	game.addTile(new Tile(Region.O3, -3, 4, Orientation.XP));
-	game.addTile(new Tile(Region.O3, 1, 3, Orientation.YP));
-	game.addTile(new Tile(Region.O3, 1, 3, Orientation.XP));
+	/* // All Tiles
 	game.addTile(new Tile(Region.O3, -4, -3));
 	game.addTile(new Tile(Region.O2, 0, -3));
 	game.addTile(new Tile(Region.O1, 4, -3));
@@ -55,7 +26,22 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.C1, 2, 1));
 	*/
 
-	renderer.render(game.getRegions());
+	//starting set
+	game.addTile(new Tile(Region.O3, -1, 0, Orientation.YP));
+	game.addTile(new Tile(Region.O3, 0, 0));
+	game.addTile(new Tile(Region.O3, 0, 0, Orientation.YP));
+	game.addTile(new Tile(Region.O3, 0, 1));
+	game.addTile(new Tile(Region.O3, -1, 1));
+	game.addTile(new Tile(Region.O3, -1, 1, Orientation.YP));
+
+	game.addPlayer(new Player('Red', 'red'));
+	game.addPlayer(new Player('Blue', 'blue'));
+	game.nextPlayer()
+
+
+	renderer.renderRegions(game.getRegions());
+
+	//renderer.renderTiles(game.getTiles());
 }
 
 Controller.prototype.handleRegionMouseover = handleRegionMouseover;
@@ -84,7 +70,6 @@ function handleRegionMouseover(event, tileId, regionId) {
 		renderer.highlight('preview-claimed', [region]);
 		renderer.highlight('preview-' + player.color, [region]);
 	}
-
 }
 
 Controller.prototype.handleRegionMouseout = handleRegionMouseout;
@@ -105,6 +90,7 @@ function handleRegionClicked(event, tileId, regionId) {
 	var player = game.currentPlayer;
 	var region = game.getRegion(regions, tileId, regionId);
 	var liberties = game.getLiberties(regions, player, region);
+	var liberties = game.getLiberties(regions, player, region);
 	var captures = game.getCaptures(regions, player, region);
 
 	if(!region.claimed && (liberties.length || captures.length)){
@@ -116,4 +102,26 @@ function handleRegionClicked(event, tileId, regionId) {
 	
 	renderer.render(regions);
 	renderer.highlight('highlight', liberties);
+}
+
+var d2 = Math.sqrt(3);
+console.log('d2', d2);
+
+Controller.prototype.handleStageMouseMove = handleStageMouseMove;
+function handleStageMouseMove(event, x, y) {
+
+
+	
+	/*
+	var _x = Math.round(x/4);
+	var _y = Math.round(y/3);
+
+	x = _x;
+	y = _y;
+
+	var regions = game.getRegions();
+
+	regions = regions.concat(new Tile(Region.O3, x, y).getRegions());
+	renderer.render(regions);
+	*/
 }

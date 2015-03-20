@@ -1,3 +1,6 @@
+var Orientation = require('./Orientation.js');
+
+
 module.exports = Game;
 function Game() {
 	this.tiles = [];
@@ -30,7 +33,12 @@ function getTile(tileId){
 	return $.grep(this.tiles, function(tile, i){
 		return tile.id === parseInt(tileId)
 	})[0];
-}var Orientation = require('./Orientation.js');
+}
+
+Game.prototype.getTiles = getTiles;
+function getTiles(){
+	return this.tiles;
+}
 
 Game.prototype.getRegions = getRegions;
 function getRegions(){
@@ -47,6 +55,7 @@ function getRegions(){
 	return regions;
 }
 
+Game.prototype.getRegionAt = getRegionAt;
 function getRegionAt(regions, vector){
 	return $.grep(regions, function(region){
 		return region.x === vector.x && region.y === vector.y;
@@ -148,8 +157,6 @@ Game.prototype.getCaptures = getCaptures;
 function getCaptures(regions, player, region){
 
 	var captures = [];
-
-	console.log(region.claimed);
 
 	if(region.claimed) return captures;
 

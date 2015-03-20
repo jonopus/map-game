@@ -6,10 +6,14 @@ var claimedRegions = [];
 
 module.exports = Tile;
 function Tile(regions, x, y, orientation) {
+
+	x = x || 0;
+	y = y || 0;
+
 	this.id = tileCount++;
-	this.x = x;
-	this.y = y;
 	this.orientation = orientation || Orientation.XP;
+	this.x = (this.orientation.offsetVector.x + 1 + y) + (x*4);
+	this.y = (this.orientation.offsetVector.y - 3) + (y*3) - x;
 	this.regions = regions;
 }
 

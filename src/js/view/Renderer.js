@@ -1,8 +1,12 @@
 var d3 = require('d3');
 
 var svg;
-var mainGorup;
-var scale = 40;
+var mainGroup;
+var regionsGroup;
+var tilesGroup;
+var scale = 20;
+var offsetX = 500;
+var offsetY = 350;
 var d2 = Math.sqrt(3);
 var hexagon = [
 	{x:(d2*-.5) + d2,		y:(-1) + .5},
@@ -10,6 +14,11 @@ var hexagon = [
 	{x:(d2*-.5) + d2*.5,	y:(-1) + 2},
 	{x:(d2*-.5) + 0,		y:(-1) + 1.5},
 	{x:(d2*-.5) + 0,		y:(-1) + .5},
+	{x:(d2*-.5) + d2*.5,	y:(-1) + 0}
+]
+var triangle = [
+	{x:(d2*-.5) + d2,		y:(-1) + 1.5},
+	{x:(d2*-.5) + 0,		y:(-1) + 1.5},
 	{x:(d2*-.5) + d2*.5,	y:(-1) + 0}
 ]
 var orthagonal = [
@@ -28,28 +37,72 @@ function Renderer(selector) {
 	.attr("width", 1000)
 	.attr("height", 900)
 	
-	mainGorup = svg.append("g")
-	.attr("transform", "translate(500,350)");
-
-	var regionGroup = svg.append("g")
+	mainGroup = svg.append("g")
+	.attr("transform", "translate(" + offsetX + "," + offsetY + ")");
 	
-	regionGroup.append("circle")
-	.attr("r", 5)
-	.attr("fill", '#555')
-	.attr("transform", "translate(500,350)");
+	regionsGroup = mainGroup.append("g")
+	tilesGroup = mainGroup.append("g")
 
 	$('svg').on('click', '.region', handleClickRegion);
 	$('svg').on('mouseover', '.region', handleMouseoverRegion);
 	$('svg').on('mouseout', '.region', handleMouseoutRegion);
+	$('body').on('mousemove', handleMouseMoveSVG);
 }
 
-Renderer.prototype.render = render;
-function render(regions){
-	mainGorup.selectAll("*").remove();
+Renderer.prototype.renderRegions = renderRegions;
+function renderRegions(regions){
+	regionsGroup.selectAll("*").remove();
 
 	for (var i = regions.length - 1; i >= 0; i--) {
 		renderRegion(regions[i], i);
 	};
+}
+
+Renderer.prototype.renderTiles = renderTiles;
+function renderTiles(tiles){
+	tilesGroup.selectAll("*").remove();
+
+	for (var i = tiles.length - 1; i >= 0; i--) {
+		renderTile(tiles[i], i);
+	};
+}
+
+function renderTile(tile, index){
+	var x = (((tile.x) * d2) + (tile.y * (d2*.5)));
+	var y = (tile.y)*1.5;
+	var cx = 0;
+	var cy = 0;
+
+	var polygon = [];
+
+	for (var i = triangle.length - 1; i >= 0; i--) {
+		var point = triangle[i];
+		polygon.push({
+			x:point.x*scale,
+			y:point.y*scale
+		});
+	};
+
+	var regionGroup = regionsGroup.append("g")
+	.attr("transform", "translate("+(x*scale)+","+(y*scale)+")")
+	.attr("id", 'tile-' + tile.id)
+	.attr("data-tile-id", tile.id)
+	.attr("data-x", tile.x)
+	.attr("data-y", tile.y);
+
+	regionGroup.selectAll("tri" + index)
+	.data([polygon])
+	.enter()
+	.append("polygon")
+	.attr("class", 'triangle')
+	.attr("points",function(d) { 
+		return d.map(function(d) {
+			return [
+			d.x,
+			d.y
+			].join(",");
+		}).join(" ");
+	});
 }
 
 Renderer.prototype.highlight = highlight;
@@ -86,6 +139,18 @@ function handleMouseoutRegion(){
 	$('body').trigger('REGION_MOUSEOUT', [region.attr("data-tile-id"), region.attr("data-region-id")])
 }
 
+function handleMouseMoveSVG(){
+	//if($(event.target).is('svg')){
+		var _x = event.clientX - offsetX;
+		var _y = event.clientY - offsetY;
+
+		var x = Math.round((((_x) / d2) - (_y / (d2/.5)))/scale);
+		var y = Math.round((_y/1.5)/scale);
+
+		$('body').trigger('STAGE_MOUSEMOVE', [x, y]);
+	//}
+}
+
 function renderRegion(region, index){
 	var x = (((region.x) * d2) + (region.y * (d2*.5)));
 	var y = (region.y)*1.5;
@@ -119,7 +184,7 @@ function renderRegion(region, index){
 		}
 	};
 
-	var regionGroup = mainGorup.append("g")
+	var regionGroup = regionsGroup.append("g")
 	.attr("id", 'region-' + region.tileId + '-' + region.id)
 	.attr("transform", "translate("+(x*scale)+","+(y*scale)+")")
 	.attr("class", 
@@ -158,7 +223,7 @@ function renderRegion(region, index){
 			].join(",");
 		}).join(" ");
 	})
-	.attr("stroke-width", 1)
+	.attr("stroke-width", .05*scale)
 	.attr("stroke", "red");
 
 	//region.claim
@@ -167,13 +232,13 @@ function renderRegion(region, index){
 
 		regionGroup.append("circle")
 		.attr("class", 'claimable')
-		.attr("r", 14)
+		.attr("r", .35*scale)
 		.attr("fill", '#555');
 
 
 		regionGroup.append("circle")
 		.attr("class", 'claim-mark')
-		.attr("r", 8);
+		.attr("r", .2*scale);
 	}
 
 }

@@ -9532,41 +9532,12 @@ function Controller(newGame, newRenderer) {
 	game = newGame;
 	renderer = newRenderer;
 
-	$('body').on('REGION_CLICKED', $.proxy(this.handleRegionClicked, this))
-	$('body').on('REGION_MOUSEOVER', $.proxy(this.handleRegionMouseover, this))
-	$('body').on('REGION_MOUSEOUT', $.proxy(this.handleRegionMouseout, this))
+	$('body').on('REGION_CLICKED', $.proxy(this.handleRegionClicked, this));
+	$('body').on('REGION_MOUSEOVER', $.proxy(this.handleRegionMouseover, this));
+	$('body').on('REGION_MOUSEOUT', $.proxy(this.handleRegionMouseout, this));
+	$('body').on('STAGE_MOUSEMOVE', $.proxy(this.handleStageMouseMove, this));
 
-	//game.addTile(new Tile(Region.O3, 0, 0, Orientation.XP));
-	game.addTile(new Tile(Region.O3, 0, 0, Orientation.YP));
-	game.addTile(new Tile(Region.O3, 0, 0, Orientation.ZP));
-	game.addTile(new Tile(Region.O3, 0, 0, Orientation.XM));
-	game.addTile(new Tile(Region.O3, 0, 0, Orientation.YM));
-	game.addTile(new Tile(Region.O3, 0, 0, Orientation.ZM));
-	game.addTile(new Tile(Region.O3, 0, 0, Orientation.XP));
-	
-	game.addTile(new Tile(Region.O2, 7, -5, Orientation.ZP));
-	game.addTile(new Tile(Region.C3, 7, -5, Orientation.YP));
-	game.addTile(new Tile(Region.C2, -1, -3, Orientation.ZP));
-
-	game.addTile(new Tile(Region.C1, 5, 2, Orientation.XM));
-
-	game.addTile(new Tile(Region.O1, 5, 2, Orientation.ZP));
-	game.addTile(new Tile(Region.O1, 2, 6, Orientation.ZM));
-	game.addTile(new Tile(Region.O1, 6, 5, Orientation.ZP));
-	
-
-	game.addPlayer(new Player('Red', 'red'));
-	game.addPlayer(new Player('Blue', 'blue'));
-	game.nextPlayer()
-
-	/*
-	game.addTile(new Tile(Region.O3, 4, -1, Orientation.YP));
-	game.addTile(new Tile(Region.O3, 4, -1, Orientation.XP));
-	game.addTile(new Tile(Region.O3, 4, -1, Orientation.ZM));
-	game.addTile(new Tile(Region.O3, 4, -1, Orientation.YM));
-	game.addTile(new Tile(Region.O3, -3, 4, Orientation.XP));
-	game.addTile(new Tile(Region.O3, 1, 3, Orientation.YP));
-	game.addTile(new Tile(Region.O3, 1, 3, Orientation.XP));
+	/* // All Tiles
 	game.addTile(new Tile(Region.O3, -4, -3));
 	game.addTile(new Tile(Region.O2, 0, -3));
 	game.addTile(new Tile(Region.O1, 4, -3));
@@ -9576,7 +9547,22 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.C1, 2, 1));
 	*/
 
-	renderer.render(game.getRegions());
+	//starting set
+	game.addTile(new Tile(Region.O3, -1, 0, Orientation.YP));
+	game.addTile(new Tile(Region.O3, 0, 0));
+	game.addTile(new Tile(Region.O3, 0, 0, Orientation.YP));
+	game.addTile(new Tile(Region.O3, 0, 1));
+	game.addTile(new Tile(Region.O3, -1, 1));
+	game.addTile(new Tile(Region.O3, -1, 1, Orientation.YP));
+
+	game.addPlayer(new Player('Red', 'red'));
+	game.addPlayer(new Player('Blue', 'blue'));
+	game.nextPlayer()
+
+
+	renderer.renderRegions(game.getRegions());
+
+	//renderer.renderTiles(game.getTiles());
 }
 
 Controller.prototype.handleRegionMouseover = handleRegionMouseover;
@@ -9605,7 +9591,6 @@ function handleRegionMouseover(event, tileId, regionId) {
 		renderer.highlight('preview-claimed', [region]);
 		renderer.highlight('preview-' + player.color, [region]);
 	}
-
 }
 
 Controller.prototype.handleRegionMouseout = handleRegionMouseout;
@@ -9626,6 +9611,7 @@ function handleRegionClicked(event, tileId, regionId) {
 	var player = game.currentPlayer;
 	var region = game.getRegion(regions, tileId, regionId);
 	var liberties = game.getLiberties(regions, player, region);
+	var liberties = game.getLiberties(regions, player, region);
 	var captures = game.getCaptures(regions, player, region);
 
 	if(!region.claimed && (liberties.length || captures.length)){
@@ -9638,7 +9624,32 @@ function handleRegionClicked(event, tileId, regionId) {
 	renderer.render(regions);
 	renderer.highlight('highlight', liberties);
 }
+
+var d2 = Math.sqrt(3);
+console.log('d2', d2);
+
+Controller.prototype.handleStageMouseMove = handleStageMouseMove;
+function handleStageMouseMove(event, x, y) {
+
+
+	
+	/*
+	var _x = Math.round(x/4);
+	var _y = Math.round(y/3);
+
+	x = _x;
+	y = _y;
+
+	var regions = game.getRegions();
+
+	regions = regions.concat(new Tile(Region.O3, x, y).getRegions());
+	renderer.render(regions);
+	*/
+}
 },{"../model/Orientation.js":5,"../model/Player.js":6,"../model/Region.js":7,"../model/Tile.js":8}],4:[function(require,module,exports){
+var Orientation = require('./Orientation.js');
+
+
 module.exports = Game;
 function Game() {
 	this.tiles = [];
@@ -9671,7 +9682,12 @@ function getTile(tileId){
 	return $.grep(this.tiles, function(tile, i){
 		return tile.id === parseInt(tileId)
 	})[0];
-}var Orientation = require('./Orientation.js');
+}
+
+Game.prototype.getTiles = getTiles;
+function getTiles(){
+	return this.tiles;
+}
 
 Game.prototype.getRegions = getRegions;
 function getRegions(){
@@ -9688,6 +9704,7 @@ function getRegions(){
 	return regions;
 }
 
+Game.prototype.getRegionAt = getRegionAt;
 function getRegionAt(regions, vector){
 	return $.grep(regions, function(region){
 		return region.x === vector.x && region.y === vector.y;
@@ -9789,8 +9806,6 @@ Game.prototype.getCaptures = getCaptures;
 function getCaptures(regions, player, region){
 
 	var captures = [];
-
-	console.log(region.claimed);
 
 	if(region.claimed) return captures;
 
@@ -9903,18 +9918,19 @@ function getGroup(regions, player, region, startRegion, loggedRegions){
 }
 },{"./Orientation.js":5}],5:[function(require,module,exports){
 module.exports = Orientation;
-function Orientation(index, angle, vector){
+function Orientation(index, angle, vector, offsetVector){
 	this.index = index;
 	this.angle = angle;
 	this.vector = vector;
+	this.offsetVector = offsetVector;
 }
 
-Orientation.XP = new Orientation(0, 0,		{x:1,	y:0});
-Orientation.YP = new Orientation(1, 60,		{x:0,	y:1});
-Orientation.ZP = new Orientation(2, 120,	{x:-1,	y:1});
-Orientation.XM = new Orientation(3, 180,	{x:-1,	y:0});
-Orientation.YM = new Orientation(4, 210,	{x:0,	y:-1});
-Orientation.ZM = new Orientation(5, 270,	{x:1,	y:-1});
+Orientation.XP = new Orientation(0, 0,		{x:1,	y:0},	{x:0,	y:0});
+Orientation.YP = new Orientation(1, 60,		{x:0,	y:1},	{x:2,	y:1});
+Orientation.ZP = new Orientation(2, 120,	{x:-1,	y:1},	{x:0,	y:1});
+Orientation.XM = new Orientation(3, 180,	{x:-1,	y:0},	{x:1,	y:2});
+Orientation.YM = new Orientation(4, 210,	{x:0,	y:-1},	{x:-1,	y:1});
+Orientation.ZM = new Orientation(5, 270,	{x:1,	y:-1},	{x:1,	y:1});
 
 var orientations = [
 	Orientation.XP,
@@ -10005,14 +10021,9 @@ function Player(id, color) {
 
 Player.prototype.removeClaim = removeClaim;
 function removeClaim(tileId, regionId){
-
-	console.log('this.claim a', tileId, regionId, this.claims);
-
 	this.claims = $.grep(this.claims, function(item){
 		return !(item.tileId === tileId && item.regionId === regionId);
 	})
-
-	console.log('this.claims b', tileId, regionId, this.claims);
 }
 
 Player.prototype.claim = claim;
@@ -10059,57 +10070,57 @@ function getOrientations(orientation){
 }
 
 Region.O3 = [
-	new Region(1,0,	false,	false,	false,	false,	false,	false,		false),
-	new Region(2,0,	false,	true,	true,	false,	true,	false,		true),
-	new Region(3,0,	false,	false,	false,	false,	false,	false,		false),
-	new Region(1,1,	false,	false,	true,	false,	false,	true,		false),
-	new Region(2,1,	true,	false,	false,	false,	true,	false,		false),
-	new Region(1,2,	false,	false,	false,	false,	false,	false,		false)
+	new Region(-1,0,	false,	false,	false,	false,	false,	false,		false),
+	new Region(0,0,		false,	true,	true,	false,	true,	false,		true),
+	new Region(1,0,		false,	false,	false,	false,	false,	false,		false),
+	new Region(-1,1,	false,	false,	true,	false,	false,	true,		false),
+	new Region(0,1,		true,	false,	false,	false,	true,	false,		false),
+	new Region(-1,2,	false,	false,	false,	false,	false,	false,		false)
 ];
 
 Region.O2 = [
-	new Region(1,0,	true,	false,	false,	false,	true,	false,		false),
-	new Region(2,0,	true,	true,	true,	true,	false,	false,		true),
-	new Region(3,0,	false,	false,	false,	true,	true,	false,		false),
-	new Region(1,1,	false,	false,	true,	false,	false,	true,		false),
-	new Region(2,1,	true,	false,	false,	false,	true,	false,		false),
-	new Region(1,2,	false,	false,	false,	false,	false,	false,		false)
+	new Region(-1,0,	true,	false,	false,	false,	true,	false,		false),
+	new Region(0,0,		true,	true,	true,	true,	false,	false,		true),
+	new Region(1,0,		false,	false,	false,	true,	true,	false,		false),
+	new Region(-1,1,	false,	false,	true,	false,	false,	true,		false),
+	new Region(0,1,		true,	false,	false,	false,	true,	false,		false),
+	new Region(-1,2,	false,	false,	false,	false,	false,	false,		false)
 ];
 
 Region.O1 = [
-	new Region(1,0,	true,	false,	true,	false,	false,	false,		false),
-	new Region(2,0,	true,	false,	true,	true,	true,	false,		true),
-	new Region(3,0,	true,	false,	false,	true,	false,	false,		false),
-	new Region(1,1,	false,	true,	false,	false,	false,	true,		false),
-	new Region(2,1,	false,	false,	false,	false,	false,	false,		false),
-	new Region(1,2,	true,	false,	true,	false,	true,	false,		false)
+	new Region(-1,0,	true,	false,	true,	false,	false,	false,		false),
+	new Region(0,0,		true,	false,	true,	true,	true,	false,		true),
+	new Region(1,0,		true,	false,	false,	true,	false,	false,		false),
+	new Region(-1,1,	false,	true,	false,	false,	false,	true,		false),
+	new Region(0,1,		false,	false,	false,	false,	false,	false,		false),
+	new Region(-1,2,	true,	false,	true,	false,	true,	false,		false)
 ];
 
 Region.C3 = [
-	new Region(1,0,	false,	false,	true,	false,	true,	false,		true),
-	new Region(2,0,	false,	false,	false,	false,	false,	false,		false),
-	new Region(3,0,	true,	false,	false,	false,	true,	false,		true),
-	new Region(1,1,	false,	false,	false,	false,	false,	false,		false),
-	new Region(2,1,	false,	false,	false,	false,	false,	false,		false),
-	new Region(1,2,	true,	false,	true,	false,	false,	false,		true)
+	new Region(-1,0,	false,	false,	true,	false,	true,	false,		true),
+	new Region(0,0,		false,	false,	false,	false,	false,	false,		false),
+	new Region(1,0,		true,	false,	false,	false,	true,	false,		true),
+	new Region(-1,1,	false,	false,	false,	false,	false,	false,		false),
+	new Region(0,1,		false,	false,	false,	false,	false,	false,		false),
+	new Region(-1,2,	true,	false,	true,	false,	false,	false,		true)
 ];
 
 Region.C2 = [
-	new Region(1,0,	true,	false,	true,	false,	false,	false,		false),
-	new Region(2,0,	true,	false,	false,	true,	true,	false,		true),
-	new Region(3,0,	true,	false,	false,	true,	false,	false,		false),
-	new Region(1,1,	false,	false,	false,	false,	false,	false,		false),
-	new Region(2,1,	false,	false,	false,	false,	false,	false,		false),
-	new Region(1,2,	true,	false,	true,	false,	false,	false,		true)
+	new Region(-1,0,	true,	false,	true,	false,	false,	false,		false),
+	new Region(0,0,		true,	false,	false,	true,	true,	false,		true),
+	new Region(1,0,		true,	false,	false,	true,	false,	false,		false),
+	new Region(-1,1,	false,	false,	false,	false,	false,	false,		false),
+	new Region(0,1,		false,	false,	false,	false,	false,	false,		false),
+	new Region(-1,2,	true,	false,	true,	false,	false,	false,		true)
 ];
 
 Region.C1 = [
-	new Region(1,0,	false,	true,	false,	false,	true,	false,		false),
-	new Region(2,0,	false,	false,	false,	false,	false,	false,		false),
-	new Region(3,0,	false,	false,	true,	false,	true,	false,		false),
-	new Region(1,1,	false,	false,	true,	false,	true,	false,		true),
-	new Region(2,1,	true,	false,	false,	false,	false,	true,		true),
-	new Region(1,2,	false,	false,	false,	false,	false,	false,		false)
+	new Region(-1,0,	false,	true,	false,	false,	true,	false,		false),
+	new Region(0,0,		false,	false,	false,	false,	false,	false,		false),
+	new Region(1,0,		false,	false,	true,	false,	true,	false,		false),
+	new Region(-1,1,	false,	false,	true,	false,	true,	false,		true),
+	new Region(0,1,		true,	false,	false,	false,	false,	true,		true),
+	new Region(-1,2,	false,	false,	false,	false,	false,	false,		false)
 ];
 },{"./Orientation.js":5}],8:[function(require,module,exports){
 var Region = require('./Region.js');
@@ -10120,10 +10131,14 @@ var claimedRegions = [];
 
 module.exports = Tile;
 function Tile(regions, x, y, orientation) {
+
+	x = x || 0;
+	y = y || 0;
+
 	this.id = tileCount++;
-	this.x = x;
-	this.y = y;
 	this.orientation = orientation || Orientation.XP;
+	this.x = (this.orientation.offsetVector.x + 1 + y) + (x*4);
+	this.y = (this.orientation.offsetVector.y - 3) + (y*3) - x;
 	this.regions = regions;
 }
 
@@ -10157,8 +10172,12 @@ function getRegion(regionId){
 var d3 = require('d3');
 
 var svg;
-var mainGorup;
-var scale = 40;
+var mainGroup;
+var regionsGroup;
+var tilesGroup;
+var scale = 20;
+var offsetX = 500;
+var offsetY = 350;
 var d2 = Math.sqrt(3);
 var hexagon = [
 	{x:(d2*-.5) + d2,		y:(-1) + .5},
@@ -10166,6 +10185,11 @@ var hexagon = [
 	{x:(d2*-.5) + d2*.5,	y:(-1) + 2},
 	{x:(d2*-.5) + 0,		y:(-1) + 1.5},
 	{x:(d2*-.5) + 0,		y:(-1) + .5},
+	{x:(d2*-.5) + d2*.5,	y:(-1) + 0}
+]
+var triangle = [
+	{x:(d2*-.5) + d2,		y:(-1) + 1.5},
+	{x:(d2*-.5) + 0,		y:(-1) + 1.5},
 	{x:(d2*-.5) + d2*.5,	y:(-1) + 0}
 ]
 var orthagonal = [
@@ -10184,28 +10208,72 @@ function Renderer(selector) {
 	.attr("width", 1000)
 	.attr("height", 900)
 	
-	mainGorup = svg.append("g")
-	.attr("transform", "translate(500,350)");
-
-	var regionGroup = svg.append("g")
+	mainGroup = svg.append("g")
+	.attr("transform", "translate(" + offsetX + "," + offsetY + ")");
 	
-	regionGroup.append("circle")
-	.attr("r", 5)
-	.attr("fill", '#555')
-	.attr("transform", "translate(500,350)");
+	regionsGroup = mainGroup.append("g")
+	tilesGroup = mainGroup.append("g")
 
 	$('svg').on('click', '.region', handleClickRegion);
 	$('svg').on('mouseover', '.region', handleMouseoverRegion);
 	$('svg').on('mouseout', '.region', handleMouseoutRegion);
+	$('body').on('mousemove', handleMouseMoveSVG);
 }
 
-Renderer.prototype.render = render;
-function render(regions){
-	mainGorup.selectAll("*").remove();
+Renderer.prototype.renderRegions = renderRegions;
+function renderRegions(regions){
+	regionsGroup.selectAll("*").remove();
 
 	for (var i = regions.length - 1; i >= 0; i--) {
 		renderRegion(regions[i], i);
 	};
+}
+
+Renderer.prototype.renderTiles = renderTiles;
+function renderTiles(tiles){
+	tilesGroup.selectAll("*").remove();
+
+	for (var i = tiles.length - 1; i >= 0; i--) {
+		renderTile(tiles[i], i);
+	};
+}
+
+function renderTile(tile, index){
+	var x = (((tile.x) * d2) + (tile.y * (d2*.5)));
+	var y = (tile.y)*1.5;
+	var cx = 0;
+	var cy = 0;
+
+	var polygon = [];
+
+	for (var i = triangle.length - 1; i >= 0; i--) {
+		var point = triangle[i];
+		polygon.push({
+			x:point.x*scale,
+			y:point.y*scale
+		});
+	};
+
+	var regionGroup = regionsGroup.append("g")
+	.attr("transform", "translate("+(x*scale)+","+(y*scale)+")")
+	.attr("id", 'tile-' + tile.id)
+	.attr("data-tile-id", tile.id)
+	.attr("data-x", tile.x)
+	.attr("data-y", tile.y);
+
+	regionGroup.selectAll("tri" + index)
+	.data([polygon])
+	.enter()
+	.append("polygon")
+	.attr("class", 'triangle')
+	.attr("points",function(d) { 
+		return d.map(function(d) {
+			return [
+			d.x,
+			d.y
+			].join(",");
+		}).join(" ");
+	});
 }
 
 Renderer.prototype.highlight = highlight;
@@ -10242,6 +10310,18 @@ function handleMouseoutRegion(){
 	$('body').trigger('REGION_MOUSEOUT', [region.attr("data-tile-id"), region.attr("data-region-id")])
 }
 
+function handleMouseMoveSVG(){
+	//if($(event.target).is('svg')){
+		var _x = event.clientX - offsetX;
+		var _y = event.clientY - offsetY;
+
+		var x = Math.round((((_x) / d2) - (_y / (d2/.5)))/scale);
+		var y = Math.round((_y/1.5)/scale);
+
+		$('body').trigger('STAGE_MOUSEMOVE', [x, y]);
+	//}
+}
+
 function renderRegion(region, index){
 	var x = (((region.x) * d2) + (region.y * (d2*.5)));
 	var y = (region.y)*1.5;
@@ -10275,7 +10355,7 @@ function renderRegion(region, index){
 		}
 	};
 
-	var regionGroup = mainGorup.append("g")
+	var regionGroup = regionsGroup.append("g")
 	.attr("id", 'region-' + region.tileId + '-' + region.id)
 	.attr("transform", "translate("+(x*scale)+","+(y*scale)+")")
 	.attr("class", 
@@ -10314,7 +10394,7 @@ function renderRegion(region, index){
 			].join(",");
 		}).join(" ");
 	})
-	.attr("stroke-width", 1)
+	.attr("stroke-width", .05*scale)
 	.attr("stroke", "red");
 
 	//region.claim
@@ -10323,13 +10403,13 @@ function renderRegion(region, index){
 
 		regionGroup.append("circle")
 		.attr("class", 'claimable')
-		.attr("r", 14)
+		.attr("r", .35*scale)
 		.attr("fill", '#555');
 
 
 		regionGroup.append("circle")
 		.attr("class", 'claim-mark')
-		.attr("r", 8);
+		.attr("r", .2*scale);
 	}
 
 }
