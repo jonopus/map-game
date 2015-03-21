@@ -27,10 +27,16 @@ function Controller(newGame, newRenderer) {
 	*/
 
 	//starting set
+	game.addTile(new Tile(Region.O3, -1, -1));
+	game.addTile(new Tile(Region.O3, -1, -1, Orientation.YP));
+	game.addTile(new Tile(Region.O3, 0, -1));
+	game.addTile(new Tile(Region.O3, 0, -1, Orientation.YP));
+	game.addTile(new Tile(Region.O3, -1, 0));
 	game.addTile(new Tile(Region.O3, -1, 0, Orientation.YP));
 	game.addTile(new Tile(Region.O3, 0, 0));
 	game.addTile(new Tile(Region.O3, 0, 0, Orientation.YP));
 	game.addTile(new Tile(Region.O3, 0, 1));
+	game.addTile(new Tile(Region.O3, 0, 1, Orientation.YP));
 	game.addTile(new Tile(Region.O3, -1, 1));
 	game.addTile(new Tile(Region.O3, -1, 1, Orientation.YP));
 
@@ -38,10 +44,15 @@ function Controller(newGame, newRenderer) {
 	game.addPlayer(new Player('Blue', 'blue'));
 	game.nextPlayer()
 
+	render(game.getRegions())
+}
 
-	renderer.renderRegions(game.getRegions());
+function render(regions) {
 
-	//renderer.renderTiles(game.getTiles());
+	var nubs = game.getNubs(regions);
+	renderer.renderRegions(regions);
+	renderer.renderTiles(nubs);
+	renderer.highlight('liberty', nubs);
 }
 
 Controller.prototype.handleRegionMouseover = handleRegionMouseover;
@@ -100,8 +111,7 @@ function handleRegionClicked(event, tileId, regionId) {
 		game.nextPlayer()
 	}
 	
-	renderer.render(regions);
-	renderer.highlight('highlight', liberties);
+	render(regions)
 }
 
 var d2 = Math.sqrt(3);

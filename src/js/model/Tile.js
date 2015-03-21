@@ -18,10 +18,10 @@ function Tile(regions, x, y, orientation) {
 }
 
 Tile.prototype.getRegions = getRegions;
-function getRegions(){
+function getRegions(useNubs){
 	var tile = this;
 
-	var regions = $.map(this.regions, function(region, i){
+	var regions = $.map(useNubs ? Region.O3 : this.regions, function(region, i){
 		var point = Orientation.rotatePoint({x:region.x, y:region.y}, tile.orientation);
 		
 		region = jQuery.extend({}, region);

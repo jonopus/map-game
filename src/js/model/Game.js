@@ -1,5 +1,5 @@
 var Orientation = require('./Orientation.js');
-
+var Region = require('./Region.js');
 
 module.exports = Game;
 function Game() {
@@ -41,16 +41,18 @@ function getTiles(){
 }
 
 Game.prototype.getRegions = getRegions;
-function getRegions(){
+function getRegions(useNubs){
 
 	var regions = [];
 
 	for (var i = this.tiles.length - 1; i >= 0; i--) {
 		var tile = this.tiles[i];
-		regions = regions.concat(tile.getRegions());
+		regions = regions.concat(tile.getRegions(useNubs));
 	};
 
-	applyClaims(regions, this.getClaims());
+	if(!useNubs){
+		applyClaims(regions, this.getClaims());
+	}
 
 	return regions;
 }
@@ -266,4 +268,96 @@ function getGroup(regions, player, region, startRegion, loggedRegions){
 	group.push(region);
 
 	return group;
+}
+
+
+Game.prototype.getNubs = getNubs;
+function getNubs(regions, region, startRegion, loggedRegions){
+
+	var group = [];
+
+	if(region){
+		group.push(region);
+	}
+
+	if(!startRegion){
+		region = regions[0];
+		startRegion = region
+	}
+
+	if(!loggedRegions){
+		loggedRegions = [];
+	}
+
+	if(loggedRegions.indexOf(region) >= 0){
+		return group;
+	}
+
+	loggedRegions.push(region);
+
+	var neighbors = getNeighborNubs(regions, region);
+
+	for (var i = neighbors.length - 1; i >= 0; i--) {
+		
+
+		var neighbor = neighbors[i];
+
+
+		if(neighbor === startRegion){
+			continue;
+		}
+
+		console.log('neighbor', neighbor);
+
+		group = group.concat(getNubs(regions, neighbor, startRegion, loggedRegions));
+
+	};
+
+	return group;
+}
+
+Game.prototype.getNeighborNubs = getNeighborNubs;
+function getNeighborNubs(regions, region, excludeOrientation, loggedRegions){
+
+	var neighbors = [];
+
+	if(!loggedRegions){
+		loggedRegions = [];
+	}
+
+	if(loggedRegions.indexOf(region) >= 0){
+		return neighbors;
+	}
+
+	loggedRegions.push(region);
+
+	var orientations = region.getOrientations(0);
+
+	for (var i = orientations.length - 1; i >= 0; i--) {
+
+		var orientation = orientations[i];
+
+		if(Orientation.getOpposite(orientation) === excludeOrientation){
+			continue;
+		}
+
+		var vector = {
+			x:region.x + orientation.vector.x,
+			y:region.y + orientation.vector.y
+		};
+
+		var neighbor = getRegionAt(regions, vector)
+
+		if(!neighbor){
+			var region = new Region(vector.x, vector.y);
+			region.n = excludeOrientation;
+
+			neighbors.push(region);
+			continue;
+		}else{
+			neighbors = neighbors.concat(getNeighborNubs(regions, neighbor, orientation, loggedRegions));
+		}
+	};
+
+	return neighbors;
 }

@@ -1,4 +1,5 @@
 var d3 = require('d3');
+var Orientation = require('../model/Orientation.js');
 
 var svg;
 var mainGroup;
@@ -16,10 +17,15 @@ var hexagon = [
 	{x:(d2*-.5) + 0,		y:(-1) + .5},
 	{x:(d2*-.5) + d2*.5,	y:(-1) + 0}
 ]
-var triangle = [
+var triangleA = [
 	{x:(d2*-.5) + d2,		y:(-1) + 1.5},
 	{x:(d2*-.5) + 0,		y:(-1) + 1.5},
 	{x:(d2*-.5) + d2*.5,	y:(-1) + 0}
+]
+var triangleB = [
+	{x:(d2*-.5) + d2,		y:(-1) + .5},
+	{x:(d2*-.5) + d2*.5,	y:(-1) + 2},
+	{x:(d2*-.5) + 0,		y:(-1) + .5}
 ]
 var orthagonal = [
 	{x:(d2*-.5) + d2,		y:(-1) + 1},
@@ -59,21 +65,23 @@ function renderRegions(regions){
 }
 
 Renderer.prototype.renderTiles = renderTiles;
-function renderTiles(tiles){
+function renderTiles(regions){
 	tilesGroup.selectAll("*").remove();
 
-	for (var i = tiles.length - 1; i >= 0; i--) {
-		renderTile(tiles[i], i);
+	for (var i = regions.length - 1; i >= 0; i--) {
+		renderTile(regions[i], i);
 	};
 }
 
-function renderTile(tile, index){
-	var x = (((tile.x) * d2) + (tile.y * (d2*.5)));
-	var y = (tile.y)*1.5;
+function renderTile(region, index){
+	var x = (((region.x) * d2) + (region.y * (d2*.5)));
+	var y = (region.y)*1.5;
 	var cx = 0;
 	var cy = 0;
 
 	var polygon = [];
+
+	var triangle = region.n.index%2 ? triangleA : triangleB
 
 	for (var i = triangle.length - 1; i >= 0; i--) {
 		var point = triangle[i];
@@ -85,10 +93,10 @@ function renderTile(tile, index){
 
 	var regionGroup = regionsGroup.append("g")
 	.attr("transform", "translate("+(x*scale)+","+(y*scale)+")")
-	.attr("id", 'tile-' + tile.id)
-	.attr("data-tile-id", tile.id)
-	.attr("data-x", tile.x)
-	.attr("data-y", tile.y);
+	.attr("id", 'region-' + region.id)
+	.attr("data-region-id", region.id)
+	.attr("data-x", region.x)
+	.attr("data-y", region.y);
 
 	regionGroup.selectAll("tri" + index)
 	.data([polygon])
