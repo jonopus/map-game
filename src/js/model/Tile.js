@@ -12,8 +12,14 @@ function Tile(regions, x, y, orientation) {
 
 	this.id = tileCount++;
 	this.orientation = orientation || Orientation.XP;
-	this.x = (this.orientation.offsetVector.x + 1 + y) + (x*4);
-	this.y = (this.orientation.offsetVector.y - 3) + (y*3) - x;
+	
+	this.x = this.orientation.offsetVector.x + (x*4) + 2 + y;
+	this.y = this.orientation.offsetVector.y + (y*3) + 0 - x;
+		
+
+	// this.x = (this.orientation.offsetVector.x + 1 + y) + (x*4);
+	// this.y = (this.orientation.offsetVector.y - 3) + (y*3) - x;
+	
 	this.regions = regions;
 }
 

@@ -27,19 +27,20 @@ function Controller(newGame, newRenderer) {
 	*/
 
 	//starting set
-	game.addTile(new Tile(Region.O3, -1, -1));
 	game.addTile(new Tile(Region.O3, -1, -1, Orientation.YP));
-	game.addTile(new Tile(Region.O3, 0, -1));
-	game.addTile(new Tile(Region.O3, 0, -1, Orientation.YP));
 	game.addTile(new Tile(Region.O3, -1, 0));
 	game.addTile(new Tile(Region.O3, -1, 0, Orientation.YP));
+	game.addTile(new Tile(Region.O3, 0, -1));
+	game.addTile(new Tile(Region.O3, 0, -1, Orientation.YP));
 	game.addTile(new Tile(Region.O3, 0, 0));
-	game.addTile(new Tile(Region.O3, 0, 0, Orientation.YP));
-	game.addTile(new Tile(Region.O3, 0, 1));
-	game.addTile(new Tile(Region.O3, 0, 1, Orientation.YP));
-	game.addTile(new Tile(Region.O3, -1, 1));
-	game.addTile(new Tile(Region.O3, -1, 1, Orientation.YP));
-
+	
+	game.addTile(new Tile(Region.O2, 0, 0, Orientation.YP));
+	game.addTile(new Tile(Region.O1, 1, 0));
+	
+	game.addTile(new Tile(Region.C3, 1, 0, Orientation.YP));
+	game.addTile(new Tile(Region.C2, 1, 1, Orientation.ZP));
+	game.addTile(new Tile(Region.C1, 0, 1, Orientation.YP));
+	
 	game.addPlayer(new Player('Red', 'red'));
 	game.addPlayer(new Player('Blue', 'blue'));
 	game.nextPlayer()
@@ -48,11 +49,12 @@ function Controller(newGame, newRenderer) {
 }
 
 function render(regions) {
-
 	var nubs = game.getNubs(regions);
-	renderer.renderRegions(regions);
-	renderer.renderTiles(nubs);
-	renderer.highlight('liberty', nubs);
+	
+	var nubTiles = game.getNubTiles(nubs);
+	renderer.renderTiles(game.getTiles().concat(nubTiles));
+	
+	renderer.renderRegions(regions.concat(nubs));
 }
 
 Controller.prototype.handleRegionMouseover = handleRegionMouseover;
@@ -67,7 +69,7 @@ function handleRegionMouseover(event, tileId, regionId) {
 	var liberties = game.getLiberties(regions, player, region);
 	var captures = game.getCaptures(regions, player, region);
 
-	if(!region.claimed){
+	if(region && !region.claimed){
 		renderer.highlight('capture', captures);
 		renderer.highlight('liberty', liberties);
 	}else{
@@ -88,7 +90,6 @@ function handleRegionMouseout(event, tileId, regionId) {
 	renderer.highlight('capture', []);
 	renderer.highlight('liberty', []);
 	renderer.highlight('illegal', []);
-	
 	renderer.highlight('preview-claimed', []);
 	renderer.highlight('preview-red', []);
 	renderer.highlight('preview-blue', []);

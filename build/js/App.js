@@ -9548,19 +9548,20 @@ function Controller(newGame, newRenderer) {
 	*/
 
 	//starting set
-	game.addTile(new Tile(Region.O3, -1, -1));
 	game.addTile(new Tile(Region.O3, -1, -1, Orientation.YP));
-	game.addTile(new Tile(Region.O3, 0, -1));
-	game.addTile(new Tile(Region.O3, 0, -1, Orientation.YP));
 	game.addTile(new Tile(Region.O3, -1, 0));
 	game.addTile(new Tile(Region.O3, -1, 0, Orientation.YP));
+	game.addTile(new Tile(Region.O3, 0, -1));
+	game.addTile(new Tile(Region.O3, 0, -1, Orientation.YP));
 	game.addTile(new Tile(Region.O3, 0, 0));
-	game.addTile(new Tile(Region.O3, 0, 0, Orientation.YP));
-	game.addTile(new Tile(Region.O3, 0, 1));
-	game.addTile(new Tile(Region.O3, 0, 1, Orientation.YP));
-	game.addTile(new Tile(Region.O3, -1, 1));
-	game.addTile(new Tile(Region.O3, -1, 1, Orientation.YP));
-
+	
+	game.addTile(new Tile(Region.O2, 0, 0, Orientation.YP));
+	game.addTile(new Tile(Region.O1, 1, 0));
+	
+	game.addTile(new Tile(Region.C3, 1, 0, Orientation.YP));
+	game.addTile(new Tile(Region.C2, 1, 1, Orientation.ZP));
+	game.addTile(new Tile(Region.C1, 0, 1, Orientation.YP));
+	
 	game.addPlayer(new Player('Red', 'red'));
 	game.addPlayer(new Player('Blue', 'blue'));
 	game.nextPlayer()
@@ -9569,11 +9570,12 @@ function Controller(newGame, newRenderer) {
 }
 
 function render(regions) {
-
 	var nubs = game.getNubs(regions);
-	renderer.renderRegions(regions);
-	renderer.renderTiles(nubs);
-	renderer.highlight('liberty', nubs);
+	
+	var nubTiles = game.getNubTiles(nubs);
+	renderer.renderTiles(game.getTiles().concat(nubTiles));
+	
+	renderer.renderRegions(regions.concat(nubs));
 }
 
 Controller.prototype.handleRegionMouseover = handleRegionMouseover;
@@ -9588,7 +9590,7 @@ function handleRegionMouseover(event, tileId, regionId) {
 	var liberties = game.getLiberties(regions, player, region);
 	var captures = game.getCaptures(regions, player, region);
 
-	if(!region.claimed){
+	if(region && !region.claimed){
 		renderer.highlight('capture', captures);
 		renderer.highlight('liberty', liberties);
 	}else{
@@ -9609,7 +9611,6 @@ function handleRegionMouseout(event, tileId, regionId) {
 	renderer.highlight('capture', []);
 	renderer.highlight('liberty', []);
 	renderer.highlight('illegal', []);
-	
 	renderer.highlight('preview-claimed', []);
 	renderer.highlight('preview-red', []);
 	renderer.highlight('preview-blue', []);
@@ -9659,6 +9660,7 @@ function handleStageMouseMove(event, x, y) {
 },{"../model/Orientation.js":5,"../model/Player.js":6,"../model/Region.js":7,"../model/Tile.js":8}],4:[function(require,module,exports){
 var Orientation = require('./Orientation.js');
 var Region = require('./Region.js');
+var Tile = require('./Tile.js');
 
 module.exports = Game;
 function Game() {
@@ -9930,53 +9932,90 @@ function getGroup(regions, player, region, startRegion, loggedRegions){
 }
 
 
-Game.prototype.getNubs = getNubs;
-function getNubs(regions, region, startRegion, loggedRegions){
+Game.prototype.getNubTiles = getNubTiles;
+function getNubTiles(regions){
 
-	var group = [];
+	var nubs = [];
+	
+	$.each(regions, function(i, region){
 
-	if(region){
-		group.push(region);
-	}
+		var x
+		var y
+		var offsetX
+		var offsetY
+		var localX
+		var localY
+		var d
 
-	if(!startRegion){
-		region = regions[0];
-		startRegion = region
-	}
+		offsetX = Math.floor(region.x/4)
+		offsetY = Math.floor(region.y/3)
 
-	if(!loggedRegions){
-		loggedRegions = [];
-	}
+		x = Math.floor((region.x - offsetY)/4)
+		y = Math.floor((region.y + offsetX)/3)
 
-	if(loggedRegions.indexOf(region) >= 0){
-		return group;
-	}
+		var matches = $.grep(nubs, function(item){
+			return item.x === x && item.y === y
+		});
 
-	loggedRegions.push(region);
-
-	var neighbors = getNeighborNubs(regions, region);
-
-	for (var i = neighbors.length - 1; i >= 0; i--) {
-		
-
-		var neighbor = neighbors[i];
-
-
-		if(neighbor === startRegion){
-			continue;
+		if(matches.length){
+			return;
 		}
+		
+		localX = region.x - ((x*4) + y);
+		localY = region.y - ((y*3) - x);
 
-		console.log('neighbor', neighbor);
+		d = localX + localY;
 
-		group = group.concat(getNubs(regions, neighbor, startRegion, loggedRegions));
+		nubs.push({
+			x:x,
+			y:y,
+			d:d
+		})
 
-	};
+	});
 
-	return group;
+	nubs = $.map(nubs, function(item){
+		var tile = new Tile(Region.XX, item.x, item.y, item.d > 3 ? Orientation.YP : Orientation.XP);
+		tile.isNub = true;
+
+		return tile;
+	});
+
+
+
+	return nubs;
 }
 
-Game.prototype.getNeighborNubs = getNeighborNubs;
-function getNeighborNubs(regions, region, excludeOrientation, loggedRegions){
+
+Game.prototype.getNubs = getNubs;
+function getNubs(regions){
+
+	regions = $.grep(regions, function(region){
+		return region.traversable;
+	});
+
+	var nubs = [];
+
+	var results = search(regions, function(region, vector, orientation){
+		if(region){
+			return true;
+		}else{
+			nubs.push(new Region(vector.x, vector.y));
+			return false;
+		}
+	}, regions[0]);
+
+	/*/
+	return [nubs[0]];
+	/*/
+	return nubs;
+	//*/
+}
+
+
+
+Game.prototype.search = search;
+function search(regions, filter, region, vector, excludeOrientation, loggedRegions){
 
 	var neighbors = [];
 
@@ -9984,43 +10023,41 @@ function getNeighborNubs(regions, region, excludeOrientation, loggedRegions){
 		loggedRegions = [];
 	}
 
-	if(loggedRegions.indexOf(region) >= 0){
+	if(region && loggedRegions.indexOf(region) >= 0){
 		return neighbors;
 	}
 
 	loggedRegions.push(region);
 
-	var orientations = region.getOrientations(0);
+	if(region){
+		var orientations = region.getOrientations(0);
 
-	for (var i = orientations.length - 1; i >= 0; i--) {
+		for (var i = orientations.length - 1; i >= 0; i--) {
 
-		var orientation = orientations[i];
+			var orientation = orientations[i];
 
-		if(Orientation.getOpposite(orientation) === excludeOrientation){
-			continue;
-		}
+			if(Orientation.getOpposite(orientation) === excludeOrientation){
+				continue;
+			}
 
-		var vector = {
-			x:region.x + orientation.vector.x,
-			y:region.y + orientation.vector.y
+			var vector = {
+				x:region.x + orientation.vector.x,
+				y:region.y + orientation.vector.y
+			};
+
+			var neighbor = getRegionAt(regions, vector)
+
+			neighbors = neighbors.concat(search(regions, filter, neighbor, vector, orientation, loggedRegions));
 		};
+	}
 
-		var neighbor = getRegionAt(regions, vector)
-
-		if(!neighbor){
-			var region = new Region(vector.x, vector.y);
-			region.n = excludeOrientation;
-
-			neighbors.push(region);
-			continue;
-		}else{
-			neighbors = neighbors.concat(getNeighborNubs(regions, neighbor, orientation, loggedRegions));
-		}
-	};
+	if(filter(region, vector, excludeOrientation)){
+		neighbors.push(region);
+	}
 
 	return neighbors;
 }
-},{"./Orientation.js":5,"./Region.js":7}],5:[function(require,module,exports){
+},{"./Orientation.js":5,"./Region.js":7,"./Tile.js":8}],5:[function(require,module,exports){
 module.exports = Orientation;
 function Orientation(index, angle, vector, offsetVector){
 	this.index = index;
@@ -10163,6 +10200,7 @@ function Region(x, y, claimable, xp, yp, zp, xm, ym, zm) {
 	this.y = y;
 	this.l = [xp, yp, zp, xm, ym, zm];
 	this.claimable = claimable;
+	this.traversable = (xp || yp || zp || xm || ym || zm);
 }
 
 Region.prototype.getOrientations = getOrientations;
@@ -10173,13 +10211,19 @@ function getOrientations(orientation){
 	})
 }
 
-Region.O3 = [
-	//new Region(-1,0,	false,		false,	false,	false,	false,	false,	false),
+Region.XX = [
 	new Region(0,0,		true,		false,	true,	true,	false,	true,	false),
-	//new Region(1,0,		false,		false,	false,	false,	false,	false,	false),
 	new Region(-1,1,	false,		false,	false,	true,	false,	false,	true),
-	new Region(0,1,		false,		true,	false,	false,	false,	true,	false)
-	//new Region(-1,2,	false,		false,	false,	false,	false,	false,	false)
+	new Region(0,1,		false,		true,	false,	false,	false,	true,	false),
+];
+
+Region.O3 = [
+	new Region(-1,0,	false,		false,	false,	false,	false,	false,	false),
+	new Region(0,0,		true,		false,	true,	true,	false,	true,	false),
+	new Region(1,0,		false,		false,	false,	false,	false,	false,	false),
+	new Region(-1,1,	false,		false,	false,	true,	false,	false,	true),
+	new Region(0,1,		false,		true,	false,	false,	false,	true,	false),
+	new Region(-1,2,	false,		false,	false,	false,	false,	false,	false)
 ];
 
 Region.O2 = [
@@ -10188,7 +10232,7 @@ Region.O2 = [
 	new Region(1,0,		false,		false,	false,	false,	true,	true,	false),
 	new Region(-1,1,	false,		false,	false,	true,	false,	false,	true),
 	new Region(0,1,		false,		true,	false,	false,	false,	true,	false),
-	//new Region(-1,2,	false,		false,	false,	false,	false,	false,	false)
+	new Region(-1,2,	false,		false,	false,	false,	false,	false,	false)
 ];
 
 Region.O1 = [
@@ -10196,16 +10240,16 @@ Region.O1 = [
 	new Region(0,0,		true,		true,	false,	true,	true,	true,	false),
 	new Region(1,0,		false,		true,	false,	false,	true,	false,	false),
 	new Region(-1,1,	false,		false,	true,	false,	false,	false,	true),
-	//new Region(0,1,		false,		false,	false,	false,	false,	false,	false),
+	new Region(0,1,		false,		false,	false,	false,	false,	false,	false),
 	new Region(-1,2,	false,		true,	false,	true,	false,	true,	false)
 ];
 
 Region.C3 = [
 	new Region(-1,0,	true,		false,	false,	true,	false,	true,	false),
-	//new Region(0,0,		false,		false,	false,	false,	false,	false,	false),
+	new Region(0,0,		false,		false,	false,	false,	false,	false,	false),
 	new Region(1,0,		true,		true,	false,	false,	false,	true,	false),
-	//new Region(-1,1,	false,		false,	false,	false,	false,	false,	false),
-	//new Region(0,1,		false,		false,	false,	false,	false,	false,	false),
+	new Region(-1,1,	false,		false,	false,	false,	false,	false,	false),
+	new Region(0,1,		false,		false,	false,	false,	false,	false,	false),
 	new Region(-1,2,	true,		true,	false,	true,	false,	false,	false)
 ];
 
@@ -10213,18 +10257,18 @@ Region.C2 = [
 	new Region(-1,0,	false,		true,	false,	true,	false,	false,	false),
 	new Region(0,0,		true,		true,	false,	false,	true,	true,	false),
 	new Region(1,0,		false,		true,	false,	false,	true,	false,	false),
-	//new Region(-1,1,	false,		false,	false,	false,	false,	false,	false),
-	//new Region(0,1,		false,		false,	false,	false,	false,	false,	false),
+	new Region(-1,1,	false,		false,	false,	false,	false,	false,	false),
+	new Region(0,1,		false,		false,	false,	false,	false,	false,	false),
 	new Region(-1,2,	true,		true,	false,	true,	false,	false,	false)
 ];
 
 Region.C1 = [
 	new Region(-1,0,	false,		false,	true,	false,	false,	true,	false),
-	//new Region(0,0,		false,		false,	false,	false,	false,	false,	false),
+	new Region(0,0,		false,		false,	false,	false,	false,	false,	false),
 	new Region(1,0,		false,		false,	false,	true,	false,	true,	false),
 	new Region(-1,1,	true,		false,	false,	true,	false,	true,	false),
-	new Region(0,1,		true,		true,	false,	false,	false,	false,	true)
-	//new Region(-1,2,	false,		false,	false,	false,	false,	false,	false)
+	new Region(0,1,		true,		true,	false,	false,	false,	false,	true),
+	new Region(-1,2,	false,		false,	false,	false,	false,	false,	false)
 ];
 },{"./Orientation.js":5}],8:[function(require,module,exports){
 var Region = require('./Region.js');
@@ -10241,8 +10285,14 @@ function Tile(regions, x, y, orientation) {
 
 	this.id = tileCount++;
 	this.orientation = orientation || Orientation.XP;
-	this.x = (this.orientation.offsetVector.x + 1 + y) + (x*4);
-	this.y = (this.orientation.offsetVector.y - 3) + (y*3) - x;
+	
+	this.x = this.orientation.offsetVector.x + (x*4) + 2 + y;
+	this.y = this.orientation.offsetVector.y + (y*3) + 0 - x;
+		
+
+	// this.x = (this.orientation.offsetVector.x + 1 + y) + (x*4);
+	// this.y = (this.orientation.offsetVector.y - 3) + (y*3) - x;
+	
 	this.regions = regions;
 }
 
@@ -10293,14 +10343,14 @@ var hexagon = [
 	{x:(d2*-.5) + d2*.5,	y:(-1) + 0}
 ]
 var triangleA = [
-	{x:(d2*-.5) + d2,		y:(-1) + 1.5},
-	{x:(d2*-.5) + 0,		y:(-1) + 1.5},
-	{x:(d2*-.5) + d2*.5,	y:(-1) + 0}
+	{x:d2*1.5,	y:1.5},
+	{x:d2*-2,	y:3},
+	{x:d2*-1,	y:-3}
 ]
 var triangleB = [
-	{x:(d2*-.5) + d2,		y:(-1) + .5},
-	{x:(d2*-.5) + d2*.5,	y:(-1) + 2},
-	{x:(d2*-.5) + 0,		y:(-1) + .5}
+	{x:d2*1.5,	y:-1.5},
+	{x:d2*.5,	y:4.5},
+	{x:d2*-2,	y:0}
 ]
 var orthagonal = [
 	{x:(d2*-.5) + d2,		y:(-1) + 1},
@@ -10320,9 +10370,15 @@ function Renderer(selector) {
 	
 	mainGroup = svg.append("g")
 	.attr("transform", "translate(" + offsetX + "," + offsetY + ")");
+
+	mainGroup.append("circle")
+	.attr("class", 'claim-mark')
+	.attr("cx", 0)
+	.attr("cy", 0)
+	.attr("r", .2*scale);
 	
-	regionsGroup = mainGroup.append("g")
 	tilesGroup = mainGroup.append("g")
+	regionsGroup = mainGroup.append("g")
 
 	$('svg').on('click', '.region', handleClickRegion);
 	$('svg').on('mouseover', '.region', handleMouseoverRegion);
@@ -10348,16 +10404,19 @@ function renderTiles(regions){
 	};
 }
 
-function renderTile(region, index){
-	var x = (((region.x) * d2) + (region.y * (d2*.5)));
-	var y = (region.y)*1.5;
+function renderTile(tile, index){
+
+	console.log('renderTile');
+
+	var x = (((tile.x) * d2) + (tile.y * (d2*.5)));
+	var y = (tile.y)*1.5;
 	var cx = 0;
 	var cy = 0;
 
 	var polygon = [];
 
-	var triangle = region.n.index%2 ? triangleA : triangleB
-
+	var triangle = tile.orientation.index%2 ? triangleA : triangleB
+	
 	for (var i = triangle.length - 1; i >= 0; i--) {
 		var point = triangle[i];
 		polygon.push({
@@ -10366,14 +10425,15 @@ function renderTile(region, index){
 		});
 	};
 
-	var regionGroup = regionsGroup.append("g")
+	var tileGroup = tilesGroup.append("g")
 	.attr("transform", "translate("+(x*scale)+","+(y*scale)+")")
-	.attr("id", 'region-' + region.id)
-	.attr("data-region-id", region.id)
-	.attr("data-x", region.x)
-	.attr("data-y", region.y);
+	.attr("class", tile.isNub ? 'tile nub' : 'tile')
+	.attr("id", 'tile-' + tile.id)
+	.attr("data-tile-id", tile.id)
+	.attr("data-x", tile.x)
+	.attr("data-y", tile.y);
 
-	regionGroup.selectAll("tri" + index)
+	tileGroup.selectAll("tri" + index)
 	.data([polygon])
 	.enter()
 	.append("polygon")

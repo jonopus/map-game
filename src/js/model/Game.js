@@ -1,5 +1,6 @@
 var Orientation = require('./Orientation.js');
 var Region = require('./Region.js');
+var Tile = require('./Tile.js');
 
 module.exports = Game;
 function Game() {
@@ -271,53 +272,90 @@ function getGroup(regions, player, region, startRegion, loggedRegions){
 }
 
 
-Game.prototype.getNubs = getNubs;
-function getNubs(regions, region, startRegion, loggedRegions){
+Game.prototype.getNubTiles = getNubTiles;
+function getNubTiles(regions){
 
-	var group = [];
+	var nubs = [];
+	
+	$.each(regions, function(i, region){
 
-	if(region){
-		group.push(region);
-	}
+		var x
+		var y
+		var offsetX
+		var offsetY
+		var localX
+		var localY
+		var d
 
-	if(!startRegion){
-		region = regions[0];
-		startRegion = region
-	}
+		offsetX = Math.floor(region.x/4)
+		offsetY = Math.floor(region.y/3)
 
-	if(!loggedRegions){
-		loggedRegions = [];
-	}
+		x = Math.floor((region.x - offsetY)/4)
+		y = Math.floor((region.y + offsetX)/3)
 
-	if(loggedRegions.indexOf(region) >= 0){
-		return group;
-	}
+		var matches = $.grep(nubs, function(item){
+			return item.x === x && item.y === y
+		});
 
-	loggedRegions.push(region);
-
-	var neighbors = getNeighborNubs(regions, region);
-
-	for (var i = neighbors.length - 1; i >= 0; i--) {
-		
-
-		var neighbor = neighbors[i];
-
-
-		if(neighbor === startRegion){
-			continue;
+		if(matches.length){
+			return;
 		}
+		
+		localX = region.x - ((x*4) + y);
+		localY = region.y - ((y*3) - x);
 
-		console.log('neighbor', neighbor);
+		d = localX + localY;
 
-		group = group.concat(getNubs(regions, neighbor, startRegion, loggedRegions));
+		nubs.push({
+			x:x,
+			y:y,
+			d:d
+		})
 
-	};
+	});
 
-	return group;
+	nubs = $.map(nubs, function(item){
+		var tile = new Tile(Region.XX, item.x, item.y, item.d > 3 ? Orientation.YP : Orientation.XP);
+		tile.isNub = true;
+
+		return tile;
+	});
+
+
+
+	return nubs;
 }
 
-Game.prototype.getNeighborNubs = getNeighborNubs;
-function getNeighborNubs(regions, region, excludeOrientation, loggedRegions){
+
+Game.prototype.getNubs = getNubs;
+function getNubs(regions){
+
+	regions = $.grep(regions, function(region){
+		return region.traversable;
+	});
+
+	var nubs = [];
+
+	var results = search(regions, function(region, vector, orientation){
+		if(region){
+			return true;
+		}else{
+			nubs.push(new Region(vector.x, vector.y));
+			return false;
+		}
+	}, regions[0]);
+
+	/*/
+	return [nubs[0]];
+	/*/
+	return nubs;
+	//*/
+}
+
+
+
+Game.prototype.search = search;
+function search(regions, filter, region, vector, excludeOrientation, loggedRegions){
 
 	var neighbors = [];
 
@@ -325,39 +363,37 @@ function getNeighborNubs(regions, region, excludeOrientation, loggedRegions){
 		loggedRegions = [];
 	}
 
-	if(loggedRegions.indexOf(region) >= 0){
+	if(region && loggedRegions.indexOf(region) >= 0){
 		return neighbors;
 	}
 
 	loggedRegions.push(region);
 
-	var orientations = region.getOrientations(0);
+	if(region){
+		var orientations = region.getOrientations(0);
 
-	for (var i = orientations.length - 1; i >= 0; i--) {
+		for (var i = orientations.length - 1; i >= 0; i--) {
 
-		var orientation = orientations[i];
+			var orientation = orientations[i];
 
-		if(Orientation.getOpposite(orientation) === excludeOrientation){
-			continue;
-		}
+			if(Orientation.getOpposite(orientation) === excludeOrientation){
+				continue;
+			}
 
-		var vector = {
-			x:region.x + orientation.vector.x,
-			y:region.y + orientation.vector.y
+			var vector = {
+				x:region.x + orientation.vector.x,
+				y:region.y + orientation.vector.y
+			};
+
+			var neighbor = getRegionAt(regions, vector)
+
+			neighbors = neighbors.concat(search(regions, filter, neighbor, vector, orientation, loggedRegions));
 		};
+	}
 
-		var neighbor = getRegionAt(regions, vector)
-
-		if(!neighbor){
-			var region = new Region(vector.x, vector.y);
-			region.n = excludeOrientation;
-
-			neighbors.push(region);
-			continue;
-		}else{
-			neighbors = neighbors.concat(getNeighborNubs(regions, neighbor, orientation, loggedRegions));
-		}
-	};
+	if(filter(region, vector, excludeOrientation)){
+		neighbors.push(region);
+	}
 
 	return neighbors;
 }

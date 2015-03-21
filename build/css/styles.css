@@ -181,17 +181,30 @@ th {
   padding: 0;
 }
 
+.region .hexagon {
+  fill-opacity: 0;
+}
 .liberty .hexagon {
   fill: #005500;
+  fill-opacity: 1;
 }
 .capture .hexagon {
   fill: #550055;
+  fill-opacity: 1;
 }
 .illegal .hexagon {
   fill: #550000;
+  fill-opacity: 1;
 }
-.region .hexagon {
-  opacity: 0.8;
+.tile .triangle {
+  fill-opacity: 0;
+  stroke: black;
+  pointer-events: none;
+}
+.tile.nub .triangle {
+  fill-opacity: .25;
+  fill: red;
+  pointer-events: none;
 }
 .hexagon {
   -webkit-transition: fill 0.15s ease-in-out;
@@ -199,6 +212,11 @@ th {
   -ms-transition: fill 0.15s ease-in-out;
   -o-transition: fill 0.15s ease-in-out;
   transition: fill 0.15s ease-in-out;
+  -webkit-transition: fill-opacity 0.15s ease-in-out;
+  -moz-transition: fill-opacity 0.15s ease-in-out;
+  -ms-transition: fill-opacity 0.15s ease-in-out;
+  -o-transition: fill-opacity 0.15s ease-in-out;
+  transition: fill-opacity 0.15s ease-in-out;
 }
 .claimable,
 .claim-mark {

@@ -18,14 +18,14 @@ var hexagon = [
 	{x:(d2*-.5) + d2*.5,	y:(-1) + 0}
 ]
 var triangleA = [
-	{x:(d2*-.5) + d2,		y:(-1) + 1.5},
-	{x:(d2*-.5) + 0,		y:(-1) + 1.5},
-	{x:(d2*-.5) + d2*.5,	y:(-1) + 0}
+	{x:d2*1.5,	y:1.5},
+	{x:d2*-2,	y:3},
+	{x:d2*-1,	y:-3}
 ]
 var triangleB = [
-	{x:(d2*-.5) + d2,		y:(-1) + .5},
-	{x:(d2*-.5) + d2*.5,	y:(-1) + 2},
-	{x:(d2*-.5) + 0,		y:(-1) + .5}
+	{x:d2*1.5,	y:-1.5},
+	{x:d2*.5,	y:4.5},
+	{x:d2*-2,	y:0}
 ]
 var orthagonal = [
 	{x:(d2*-.5) + d2,		y:(-1) + 1},
@@ -45,9 +45,15 @@ function Renderer(selector) {
 	
 	mainGroup = svg.append("g")
 	.attr("transform", "translate(" + offsetX + "," + offsetY + ")");
+
+	mainGroup.append("circle")
+	.attr("class", 'claim-mark')
+	.attr("cx", 0)
+	.attr("cy", 0)
+	.attr("r", .2*scale);
 	
-	regionsGroup = mainGroup.append("g")
 	tilesGroup = mainGroup.append("g")
+	regionsGroup = mainGroup.append("g")
 
 	$('svg').on('click', '.region', handleClickRegion);
 	$('svg').on('mouseover', '.region', handleMouseoverRegion);
@@ -73,16 +79,19 @@ function renderTiles(regions){
 	};
 }
 
-function renderTile(region, index){
-	var x = (((region.x) * d2) + (region.y * (d2*.5)));
-	var y = (region.y)*1.5;
+function renderTile(tile, index){
+
+	console.log('renderTile');
+
+	var x = (((tile.x) * d2) + (tile.y * (d2*.5)));
+	var y = (tile.y)*1.5;
 	var cx = 0;
 	var cy = 0;
 
 	var polygon = [];
 
-	var triangle = region.n.index%2 ? triangleA : triangleB
-
+	var triangle = tile.orientation.index%2 ? triangleA : triangleB
+	
 	for (var i = triangle.length - 1; i >= 0; i--) {
 		var point = triangle[i];
 		polygon.push({
@@ -91,14 +100,15 @@ function renderTile(region, index){
 		});
 	};
 
-	var regionGroup = regionsGroup.append("g")
+	var tileGroup = tilesGroup.append("g")
 	.attr("transform", "translate("+(x*scale)+","+(y*scale)+")")
-	.attr("id", 'region-' + region.id)
-	.attr("data-region-id", region.id)
-	.attr("data-x", region.x)
-	.attr("data-y", region.y);
+	.attr("class", tile.isNub ? 'tile nub' : 'tile')
+	.attr("id", 'tile-' + tile.id)
+	.attr("data-tile-id", tile.id)
+	.attr("data-x", tile.x)
+	.attr("data-y", tile.y);
 
-	regionGroup.selectAll("tri" + index)
+	tileGroup.selectAll("tri" + index)
 	.data([polygon])
 	.enter()
 	.append("polygon")
