@@ -80,3 +80,24 @@ Region.C1 = [
 	new Region(0,1,		true,		true,	false,	false,	false,	false,	true),
 	new Region(-1,2,	false,		false,	false,	false,	false,	false,	false)
 ];
+
+Region.getRegionSpace = function(tile){
+
+	var point = {
+		x:(tile.x*4) + 2 + tile.y,
+		y:(tile.y*3) + 0 - tile.x
+	}
+
+	switch(tile.orientation.index){
+		case 1:
+		case 3:
+		case 5:
+		point.x += 2;
+		point.y += 1;
+		break;
+
+
+	}
+
+	return point
+}

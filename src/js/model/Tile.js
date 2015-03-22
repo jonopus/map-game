@@ -43,24 +43,30 @@ function getRegion(regionId){
 	})[0];
 }
 
-Tile.prototype.getRegionSpace = getRegionSpace;
-function getRegionSpace(){
+Tile.getTileSpace = function(region){
 
-	var point = {
-		x:(this.x*4) + 2 + this.y,
-		y:(this.y*3) + 0 - this.x
+	var x
+	var y
+	var offsetX
+	var offsetY
+	var localX
+	var localY
+	var o
+
+	offsetX = Math.floor(region.x/4)
+	offsetY = Math.floor(region.y/3)
+
+	x = Math.floor((region.x - offsetY)/4)
+	y = Math.floor((region.y + offsetX)/3)
+
+	localX = region.x - ((x*4) + y);
+	localY = region.y - ((y*3) - x);
+
+	o = localX + localY > 3;
+
+	return {
+		x:x,
+		y:y,
+		o:o
 	}
-
-	switch(this.orientation.index){
-		case 1:
-		case 3:
-		case 5:
-		point.x += 2;
-		point.y += 1;
-		break;
-
-
-	}
-
-	return point
 }

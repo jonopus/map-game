@@ -42,6 +42,11 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.C2, 1, 1, Orientation.ZP));
 	game.addTile(new Tile(Region.C3, 1, 0, Orientation.YP));
 	game.addTile(new Tile(Region.C1, 0, 1, Orientation.YP));
+	
+
+	game.addTile(new Tile(Region.O3, 0, -2, Orientation.YP));
+	game.addTile(new Tile(Region.O3, 0, -2));
+
 
 	game.addPlayer(new Player('Red', 'red'));
 	game.addPlayer(new Player('Blue', 'blue'));
@@ -51,19 +56,45 @@ function Controller(newGame, newRenderer) {
 }
 
 function render(regions) {
+	var tiles = game.getTiles();
+	
+	
+	//* // Test
+	var nub = new Region(0,1);
+	var test = [nub]
+	var nubTiles = game.getNubTiles(test);
+
+	regions = regions.concat(test);
+	tiles = tiles.concat(nubTiles)
+	//*/
 
 
-
+	/* // Default
 	var nubs = game.getNubs(regions);
 	var nubTiles = game.getNubTiles(nubs);
 
 	var tiles = game.getTiles();
 	renderer.renderTiles(tiles.concat(nubTiles));
-	
-	
 	renderer.renderRegions(regions.concat(nubs));
-
 	renderer.highlight('capture', nubs);
+	//*/
+	
+	
+	//var point = Tile.getTileSpace(region);
+
+	/* //Show Ends
+	var tiles = game.getTiles();
+	var ends = game.getEnds(regions);
+	renderer.renderTiles(tiles);
+	renderer.renderRegions(regions);
+	renderer.highlight('capture', ends);
+	//*/
+
+	
+	renderer.renderTiles(tiles);
+	renderer.renderRegions(regions);
+
+	renderer.highlight('liberty', test);
 }
 
 Controller.prototype.handleRegionMouseover = handleRegionMouseover;

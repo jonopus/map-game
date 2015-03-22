@@ -52,7 +52,7 @@ function getRegions(useNubs){
 		var tileRegions = tile.getRegions(useNubs)
 
 		$.each(tileRegions, function(i, region){
-			var regionSpace = tile.getRegionSpace()
+			var regionSpace = Region.getRegionSpace(tile)
 			region.x = regionSpace.x + region.x
 			region.y = regionSpace.y + region.y
 		})
@@ -288,38 +288,20 @@ function getNubTiles(regions){
 	
 	$.each(regions, function(i, region){
 
-		var x
-		var y
-		var offsetX
-		var offsetY
-		var localX
-		var localY
-		var o
 
-		offsetX = Math.floor(region.x/4)
-		offsetY = Math.floor(region.y/3)
+		var point = Tile.getTileSpace(region);
 
-		x = Math.floor((region.x - offsetY)/4)
-		y = Math.floor((region.y + offsetX)/3)
-
-		localX = region.x - ((x*4) + y);
-		localY = region.y - ((y*3) - x);
-
-		o = localX + localY > 3;
+		console.log('point', point);
 		
 		var matches = $.grep(nubs, function(item){
-			return item.x === x && item.y === y && item.o === o
+			return item.x === point.x && item.y === point.y && item.o === point.o
 		});
 
 		if(matches.length){
 			return;
 		}
 
-		nubs.push({
-			x:x,
-			y:y,
-			o:o
-		})
+		nubs.push(point)
 
 	});
 
@@ -331,6 +313,44 @@ function getNubTiles(regions){
 	});
 
 	return nubs;
+}
+
+
+Game.prototype.getTraversable = getTraversable;
+function getTraversable(regions){
+
+	return $.grep(regions, function(region){
+		return region.traversable;
+	});
+}
+
+
+Game.prototype.getEnds = getEnds;
+function getEnds(regions){
+
+	regions = $.grep(regions, function(region){
+		return region.traversable;
+	});
+
+	var ends = [];
+
+	var results = search(regions, function(region, vector, orientation){
+		if(region){
+			return true;
+		}else{
+			var endVector = {
+				x:vector.x - orientation.vector.x,
+				y:vector.y - orientation.vector.y
+			}
+
+			var end = getRegionAt(regions, endVector);
+
+			ends.push(end);
+			return false;
+		}
+	}, regions[0]);
+
+	return ends;
 }
 
 
@@ -352,7 +372,7 @@ function getNubs(regions){
 		}
 	}, regions[0]);
 
-	return nubs;
+	return [nubs[1]];
 }
 
 
@@ -401,7 +421,7 @@ function search(regions, filter, region, vector, excludeOrientation, logged, unL
 		neighbors.push(region);
 	}
 
-	if(unLogged.length){
+	if(!region && unLogged.length){
 		neighbors = neighbors.concat(search(regions, filter, unLogged[0], vector, orientation, logged, unLogged));
 	}
 

@@ -1,5 +1,6 @@
 var d3 = require('d3');
 var Orientation = require('../model/Orientation.js');
+var Region = require('../model/Region.js');
 
 var svg;
 var mainGroup;
@@ -114,7 +115,7 @@ function renderTiles(regions){
 
 function renderTile(tile, index){
 
-	var regionSpace = tile.getRegionSpace()
+	var regionSpace = Region.getRegionSpace(tile)
 
 	var x = (((regionSpace.x) * d2) + (regionSpace.y * (d2*.5)));
 	var y = (regionSpace.y)*1.5;

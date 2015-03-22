@@ -9563,6 +9563,11 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.C2, 1, 1, Orientation.ZP));
 	game.addTile(new Tile(Region.C3, 1, 0, Orientation.YP));
 	game.addTile(new Tile(Region.C1, 0, 1, Orientation.YP));
+	
+
+	game.addTile(new Tile(Region.O3, 0, -2, Orientation.YP));
+	game.addTile(new Tile(Region.O3, 0, -2));
+
 
 	game.addPlayer(new Player('Red', 'red'));
 	game.addPlayer(new Player('Blue', 'blue'));
@@ -9572,19 +9577,45 @@ function Controller(newGame, newRenderer) {
 }
 
 function render(regions) {
+	var tiles = game.getTiles();
+	
+	
+	//* // Test
+	var nub = new Region(0,1);
+	var test = [nub]
+	var nubTiles = game.getNubTiles(test);
+
+	regions = regions.concat(test);
+	tiles = tiles.concat(nubTiles)
+	//*/
 
 
-
+	/* // Default
 	var nubs = game.getNubs(regions);
 	var nubTiles = game.getNubTiles(nubs);
 
 	var tiles = game.getTiles();
 	renderer.renderTiles(tiles.concat(nubTiles));
-	
-	
 	renderer.renderRegions(regions.concat(nubs));
-
 	renderer.highlight('capture', nubs);
+	//*/
+	
+	
+	//var point = Tile.getTileSpace(region);
+
+	/* //Show Ends
+	var tiles = game.getTiles();
+	var ends = game.getEnds(regions);
+	renderer.renderTiles(tiles);
+	renderer.renderRegions(regions);
+	renderer.highlight('capture', ends);
+	//*/
+
+	
+	renderer.renderTiles(tiles);
+	renderer.renderRegions(regions);
+
+	renderer.highlight('liberty', test);
 }
 
 Controller.prototype.handleRegionMouseover = handleRegionMouseover;
@@ -9727,7 +9758,7 @@ function getRegions(useNubs){
 		var tileRegions = tile.getRegions(useNubs)
 
 		$.each(tileRegions, function(i, region){
-			var regionSpace = tile.getRegionSpace()
+			var regionSpace = Region.getRegionSpace(tile)
 			region.x = regionSpace.x + region.x
 			region.y = regionSpace.y + region.y
 		})
@@ -9963,38 +9994,20 @@ function getNubTiles(regions){
 	
 	$.each(regions, function(i, region){
 
-		var x
-		var y
-		var offsetX
-		var offsetY
-		var localX
-		var localY
-		var o
 
-		offsetX = Math.floor(region.x/4)
-		offsetY = Math.floor(region.y/3)
+		var point = Tile.getTileSpace(region);
 
-		x = Math.floor((region.x - offsetY)/4)
-		y = Math.floor((region.y + offsetX)/3)
-
-		localX = region.x - ((x*4) + y);
-		localY = region.y - ((y*3) - x);
-
-		o = localX + localY > 3;
+		console.log('point', point);
 		
 		var matches = $.grep(nubs, function(item){
-			return item.x === x && item.y === y && item.o === o
+			return item.x === point.x && item.y === point.y && item.o === point.o
 		});
 
 		if(matches.length){
 			return;
 		}
 
-		nubs.push({
-			x:x,
-			y:y,
-			o:o
-		})
+		nubs.push(point)
 
 	});
 
@@ -10006,6 +10019,44 @@ function getNubTiles(regions){
 	});
 
 	return nubs;
+}
+
+
+Game.prototype.getTraversable = getTraversable;
+function getTraversable(regions){
+
+	return $.grep(regions, function(region){
+		return region.traversable;
+	});
+}
+
+
+Game.prototype.getEnds = getEnds;
+function getEnds(regions){
+
+	regions = $.grep(regions, function(region){
+		return region.traversable;
+	});
+
+	var ends = [];
+
+	var results = search(regions, function(region, vector, orientation){
+		if(region){
+			return true;
+		}else{
+			var endVector = {
+				x:vector.x - orientation.vector.x,
+				y:vector.y - orientation.vector.y
+			}
+
+			var end = getRegionAt(regions, endVector);
+
+			ends.push(end);
+			return false;
+		}
+	}, regions[0]);
+
+	return ends;
 }
 
 
@@ -10027,7 +10078,7 @@ function getNubs(regions){
 		}
 	}, regions[0]);
 
-	return nubs;
+	return [nubs[1]];
 }
 
 
@@ -10076,7 +10127,7 @@ function search(regions, filter, region, vector, excludeOrientation, logged, unL
 		neighbors.push(region);
 	}
 
-	if(unLogged.length){
+	if(!region && unLogged.length){
 		neighbors = neighbors.concat(search(regions, filter, unLogged[0], vector, orientation, logged, unLogged));
 	}
 
@@ -10295,6 +10346,27 @@ Region.C1 = [
 	new Region(0,1,		true,		true,	false,	false,	false,	false,	true),
 	new Region(-1,2,	false,		false,	false,	false,	false,	false,	false)
 ];
+
+Region.getRegionSpace = function(tile){
+
+	var point = {
+		x:(tile.x*4) + 2 + tile.y,
+		y:(tile.y*3) + 0 - tile.x
+	}
+
+	switch(tile.orientation.index){
+		case 1:
+		case 3:
+		case 5:
+		point.x += 2;
+		point.y += 1;
+		break;
+
+
+	}
+
+	return point
+}
 },{"./Orientation.js":5}],8:[function(require,module,exports){
 var Region = require('./Region.js');
 var Orientation = require('./Orientation.js');
@@ -10341,30 +10413,37 @@ function getRegion(regionId){
 	})[0];
 }
 
-Tile.prototype.getRegionSpace = getRegionSpace;
-function getRegionSpace(){
+Tile.getTileSpace = function(region){
 
-	var point = {
-		x:(this.x*4) + 2 + this.y,
-		y:(this.y*3) + 0 - this.x
+	var x
+	var y
+	var offsetX
+	var offsetY
+	var localX
+	var localY
+	var o
+
+	offsetX = Math.floor(region.x/4)
+	offsetY = Math.floor(region.y/3)
+
+	x = Math.floor((region.x - offsetY)/4)
+	y = Math.floor((region.y + offsetX)/3)
+
+	localX = region.x - ((x*4) + y);
+	localY = region.y - ((y*3) - x);
+
+	o = localX + localY > 3;
+
+	return {
+		x:x,
+		y:y,
+		o:o
 	}
-
-	switch(this.orientation.index){
-		case 1:
-		case 3:
-		case 5:
-		point.x += 2;
-		point.y += 1;
-		break;
-
-
-	}
-
-	return point
 }
 },{"./Orientation.js":5,"./Region.js":7}],9:[function(require,module,exports){
 var d3 = require('d3');
 var Orientation = require('../model/Orientation.js');
+var Region = require('../model/Region.js');
 
 var svg;
 var mainGroup;
@@ -10479,7 +10558,7 @@ function renderTiles(regions){
 
 function renderTile(tile, index){
 
-	var regionSpace = tile.getRegionSpace()
+	var regionSpace = Region.getRegionSpace(tile)
 
 	var x = (((regionSpace.x) * d2) + (regionSpace.y * (d2*.5)));
 	var y = (regionSpace.y)*1.5;
@@ -10634,4 +10713,4 @@ function renderRegion(region, index){
 }
 
 
-},{"../model/Orientation.js":5,"d3":1}]},{},[2]);
+},{"../model/Orientation.js":5,"../model/Region.js":7,"d3":1}]},{},[2]);
