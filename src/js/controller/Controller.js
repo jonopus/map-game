@@ -12,6 +12,7 @@ function Controller(newGame, newRenderer) {
 	renderer = newRenderer;
 
 	$('body').on('REGION_CLICKED', $.proxy(this.handleRegionClicked, this));
+	$('body').on('NUB_CLICKED', $.proxy(this.handleNubClicked, this));
 	$('body').on('REGION_MOUSEOVER', $.proxy(this.handleRegionMouseover, this));
 	$('body').on('REGION_MOUSEOUT', $.proxy(this.handleRegionMouseout, this));
 	$('body').on('STAGE_MOUSEMOVE', $.proxy(this.handleStageMouseMove, this));
@@ -27,6 +28,7 @@ function Controller(newGame, newRenderer) {
 	*/
 
 	//starting set
+	
 	game.addTile(new Tile(Region.O3, -1, -1, Orientation.YP));
 	game.addTile(new Tile(Region.O3, -1, 0));
 	game.addTile(new Tile(Region.O3, -1, 0, Orientation.YP));
@@ -37,10 +39,10 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.O2, 0, 0, Orientation.YP));
 	game.addTile(new Tile(Region.O1, 1, 0));
 	
-	game.addTile(new Tile(Region.C3, 1, 0, Orientation.YP));
 	game.addTile(new Tile(Region.C2, 1, 1, Orientation.ZP));
+	game.addTile(new Tile(Region.C3, 1, 0, Orientation.YP));
 	game.addTile(new Tile(Region.C1, 0, 1, Orientation.YP));
-	
+
 	game.addPlayer(new Player('Red', 'red'));
 	game.addPlayer(new Player('Blue', 'blue'));
 	game.nextPlayer()
@@ -49,12 +51,19 @@ function Controller(newGame, newRenderer) {
 }
 
 function render(regions) {
+
+
+
 	var nubs = game.getNubs(regions);
-	
 	var nubTiles = game.getNubTiles(nubs);
-	renderer.renderTiles(game.getTiles().concat(nubTiles));
+
+	var tiles = game.getTiles();
+	renderer.renderTiles(tiles.concat(nubTiles));
+	
 	
 	renderer.renderRegions(regions.concat(nubs));
+
+	renderer.highlight('capture', nubs);
 }
 
 Controller.prototype.handleRegionMouseover = handleRegionMouseover;
@@ -95,6 +104,13 @@ function handleRegionMouseout(event, tileId, regionId) {
 	renderer.highlight('preview-blue', []);
 }
 
+Controller.prototype.handleNubClicked = handleNubClicked;
+function handleNubClicked(event, x, y, o) {
+	game.addTile(new Tile(Region.O3, x, y, o ? Orientation.YP : Orientation.XP));
+
+	render(game.getRegions())
+}
+
 Controller.prototype.handleRegionClicked = handleRegionClicked;
 function handleRegionClicked(event, tileId, regionId) {
 	var regions = game.getRegions();
@@ -116,7 +132,6 @@ function handleRegionClicked(event, tileId, regionId) {
 }
 
 var d2 = Math.sqrt(3);
-console.log('d2', d2);
 
 Controller.prototype.handleStageMouseMove = handleStageMouseMove;
 function handleStageMouseMove(event, x, y) {

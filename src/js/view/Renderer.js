@@ -56,9 +56,42 @@ function Renderer(selector) {
 	regionsGroup = mainGroup.append("g")
 
 	$('svg').on('click', '.region', handleClickRegion);
+	$('svg').on('click', '.nub', handleClickNub);
 	$('svg').on('mouseover', '.region', handleMouseoverRegion);
 	$('svg').on('mouseout', '.region', handleMouseoutRegion);
 	$('body').on('mousemove', handleMouseMoveSVG);
+}
+
+function handleClickRegion(){
+	var region = d3.select(this);
+	$('body').trigger('REGION_CLICKED', [region.attr("data-tile-id"), region.attr("data-region-id")])
+}
+
+function handleClickNub(){
+	var region = d3.select(this);
+	$('body').trigger('NUB_CLICKED', [parseInt(region.attr("data-x")), parseInt(region.attr("data-y")), parseInt(region.attr("data-o"))])
+}
+
+function handleMouseoverRegion(){
+	var region = d3.select(this);
+	$('body').trigger('REGION_MOUSEOVER', [region.attr("data-tile-id"), region.attr("data-region-id")])
+}
+
+function handleMouseoutRegion(){
+	var region = d3.select(this);
+	$('body').trigger('REGION_MOUSEOUT', [region.attr("data-tile-id"), region.attr("data-region-id")])
+}
+
+function handleMouseMoveSVG(){
+	//if($(event.target).is('svg')){
+		var _x = event.clientX - offsetX;
+		var _y = event.clientY - offsetY;
+
+		var x = Math.round((((_x) / d2) - (_y / (d2/.5)))/scale);
+		var y = Math.round((_y/1.5)/scale);
+
+		$('body').trigger('STAGE_MOUSEMOVE', [x, y]);
+	//}
 }
 
 Renderer.prototype.renderRegions = renderRegions;
@@ -81,10 +114,10 @@ function renderTiles(regions){
 
 function renderTile(tile, index){
 
-	console.log('renderTile');
+	var regionSpace = tile.getRegionSpace()
 
-	var x = (((tile.x) * d2) + (tile.y * (d2*.5)));
-	var y = (tile.y)*1.5;
+	var x = (((regionSpace.x) * d2) + (regionSpace.y * (d2*.5)));
+	var y = (regionSpace.y)*1.5;
 	var cx = 0;
 	var cy = 0;
 
@@ -102,11 +135,12 @@ function renderTile(tile, index){
 
 	var tileGroup = tilesGroup.append("g")
 	.attr("transform", "translate("+(x*scale)+","+(y*scale)+")")
-	.attr("class", tile.isNub ? 'tile nub' : 'tile')
+	.attr("class", tile.isNub ? 'nub' : 'tile')
 	.attr("id", 'tile-' + tile.id)
 	.attr("data-tile-id", tile.id)
 	.attr("data-x", tile.x)
-	.attr("data-y", tile.y);
+	.attr("data-y", tile.y)
+	.attr("data-o", tile.orientation.index);
 
 	tileGroup.selectAll("tri" + index)
 	.data([polygon])
@@ -140,33 +174,6 @@ function highlight(className, regions){
 		});
 	};
 
-}
-
-function handleClickRegion(){
-	var region = d3.select(this);
-	$('body').trigger('REGION_CLICKED', [region.attr("data-tile-id"), region.attr("data-region-id")])
-}
-
-function handleMouseoverRegion(){
-	var region = d3.select(this);
-	$('body').trigger('REGION_MOUSEOVER', [region.attr("data-tile-id"), region.attr("data-region-id")])
-}
-
-function handleMouseoutRegion(){
-	var region = d3.select(this);
-	$('body').trigger('REGION_MOUSEOUT', [region.attr("data-tile-id"), region.attr("data-region-id")])
-}
-
-function handleMouseMoveSVG(){
-	//if($(event.target).is('svg')){
-		var _x = event.clientX - offsetX;
-		var _y = event.clientY - offsetY;
-
-		var x = Math.round((((_x) / d2) - (_y / (d2/.5)))/scale);
-		var y = Math.round((_y/1.5)/scale);
-
-		$('body').trigger('STAGE_MOUSEMOVE', [x, y]);
-	//}
 }
 
 function renderRegion(region, index){

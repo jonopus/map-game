@@ -9533,6 +9533,7 @@ function Controller(newGame, newRenderer) {
 	renderer = newRenderer;
 
 	$('body').on('REGION_CLICKED', $.proxy(this.handleRegionClicked, this));
+	$('body').on('NUB_CLICKED', $.proxy(this.handleNubClicked, this));
 	$('body').on('REGION_MOUSEOVER', $.proxy(this.handleRegionMouseover, this));
 	$('body').on('REGION_MOUSEOUT', $.proxy(this.handleRegionMouseout, this));
 	$('body').on('STAGE_MOUSEMOVE', $.proxy(this.handleStageMouseMove, this));
@@ -9548,6 +9549,7 @@ function Controller(newGame, newRenderer) {
 	*/
 
 	//starting set
+	
 	game.addTile(new Tile(Region.O3, -1, -1, Orientation.YP));
 	game.addTile(new Tile(Region.O3, -1, 0));
 	game.addTile(new Tile(Region.O3, -1, 0, Orientation.YP));
@@ -9558,10 +9560,10 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.O2, 0, 0, Orientation.YP));
 	game.addTile(new Tile(Region.O1, 1, 0));
 	
-	game.addTile(new Tile(Region.C3, 1, 0, Orientation.YP));
 	game.addTile(new Tile(Region.C2, 1, 1, Orientation.ZP));
+	game.addTile(new Tile(Region.C3, 1, 0, Orientation.YP));
 	game.addTile(new Tile(Region.C1, 0, 1, Orientation.YP));
-	
+
 	game.addPlayer(new Player('Red', 'red'));
 	game.addPlayer(new Player('Blue', 'blue'));
 	game.nextPlayer()
@@ -9570,12 +9572,19 @@ function Controller(newGame, newRenderer) {
 }
 
 function render(regions) {
+
+
+
 	var nubs = game.getNubs(regions);
-	
 	var nubTiles = game.getNubTiles(nubs);
-	renderer.renderTiles(game.getTiles().concat(nubTiles));
+
+	var tiles = game.getTiles();
+	renderer.renderTiles(tiles.concat(nubTiles));
+	
 	
 	renderer.renderRegions(regions.concat(nubs));
+
+	renderer.highlight('capture', nubs);
 }
 
 Controller.prototype.handleRegionMouseover = handleRegionMouseover;
@@ -9616,6 +9625,13 @@ function handleRegionMouseout(event, tileId, regionId) {
 	renderer.highlight('preview-blue', []);
 }
 
+Controller.prototype.handleNubClicked = handleNubClicked;
+function handleNubClicked(event, x, y, o) {
+	game.addTile(new Tile(Region.O3, x, y, o ? Orientation.YP : Orientation.XP));
+
+	render(game.getRegions())
+}
+
 Controller.prototype.handleRegionClicked = handleRegionClicked;
 function handleRegionClicked(event, tileId, regionId) {
 	var regions = game.getRegions();
@@ -9637,7 +9653,6 @@ function handleRegionClicked(event, tileId, regionId) {
 }
 
 var d2 = Math.sqrt(3);
-console.log('d2', d2);
 
 Controller.prototype.handleStageMouseMove = handleStageMouseMove;
 function handleStageMouseMove(event, x, y) {
@@ -9708,7 +9723,16 @@ function getRegions(useNubs){
 
 	for (var i = this.tiles.length - 1; i >= 0; i--) {
 		var tile = this.tiles[i];
-		regions = regions.concat(tile.getRegions(useNubs));
+
+		var tileRegions = tile.getRegions(useNubs)
+
+		$.each(tileRegions, function(i, region){
+			var regionSpace = tile.getRegionSpace()
+			region.x = regionSpace.x + region.x
+			region.y = regionSpace.y + region.y
+		})
+
+		regions = regions.concat(tileRegions);
 	};
 
 	if(!useNubs){
@@ -9945,7 +9969,7 @@ function getNubTiles(regions){
 		var offsetY
 		var localX
 		var localY
-		var d
+		var o
 
 		offsetX = Math.floor(region.x/4)
 		offsetY = Math.floor(region.y/3)
@@ -9953,35 +9977,33 @@ function getNubTiles(regions){
 		x = Math.floor((region.x - offsetY)/4)
 		y = Math.floor((region.y + offsetX)/3)
 
+		localX = region.x - ((x*4) + y);
+		localY = region.y - ((y*3) - x);
+
+		o = localX + localY > 3;
+		
 		var matches = $.grep(nubs, function(item){
-			return item.x === x && item.y === y
+			return item.x === x && item.y === y && item.o === o
 		});
 
 		if(matches.length){
 			return;
 		}
-		
-		localX = region.x - ((x*4) + y);
-		localY = region.y - ((y*3) - x);
-
-		d = localX + localY;
 
 		nubs.push({
 			x:x,
 			y:y,
-			d:d
+			o:o
 		})
 
 	});
 
 	nubs = $.map(nubs, function(item){
-		var tile = new Tile(Region.XX, item.x, item.y, item.d > 3 ? Orientation.YP : Orientation.XP);
+		var tile = new Tile(Region.XX, item.x, item.y, item.o ? Orientation.YP : Orientation.XP);
 		tile.isNub = true;
 
 		return tile;
 	});
-
-
 
 	return nubs;
 }
@@ -10005,29 +10027,28 @@ function getNubs(regions){
 		}
 	}, regions[0]);
 
-	/*/
-	return [nubs[0]];
-	/*/
 	return nubs;
-	//*/
 }
 
 
 
 Game.prototype.search = search;
-function search(regions, filter, region, vector, excludeOrientation, loggedRegions){
-
+function search(regions, filter, region, vector, excludeOrientation, logged, unLogged){
 	var neighbors = [];
 
-	if(!loggedRegions){
-		loggedRegions = [];
+	if(!logged){
+		logged = [];
 	}
 
-	if(region && loggedRegions.indexOf(region) >= 0){
+	if(!unLogged){
+		unLogged = regions.slice();
+	}
+
+	if(region && logged.indexOf(region) >= 0){
 		return neighbors;
 	}
 
-	loggedRegions.push(region);
+	region && logged.push(unLogged.splice(unLogged.indexOf(region), 1)[0]);
 
 	if(region){
 		var orientations = region.getOrientations(0);
@@ -10047,7 +10068,7 @@ function search(regions, filter, region, vector, excludeOrientation, loggedRegio
 
 			var neighbor = getRegionAt(regions, vector)
 
-			neighbors = neighbors.concat(search(regions, filter, neighbor, vector, orientation, loggedRegions));
+			neighbors = neighbors.concat(search(regions, filter, neighbor, vector, orientation, logged, unLogged));
 		};
 	}
 
@@ -10055,23 +10076,27 @@ function search(regions, filter, region, vector, excludeOrientation, loggedRegio
 		neighbors.push(region);
 	}
 
+	if(unLogged.length){
+		neighbors = neighbors.concat(search(regions, filter, unLogged[0], vector, orientation, logged, unLogged));
+	}
+
 	return neighbors;
 }
 },{"./Orientation.js":5,"./Region.js":7,"./Tile.js":8}],5:[function(require,module,exports){
 module.exports = Orientation;
-function Orientation(index, angle, vector, offsetVector){
+function Orientation(index, angle, vector, offset){
 	this.index = index;
 	this.angle = angle;
 	this.vector = vector;
-	this.offsetVector = offsetVector;
+	this.offset = offset;
 }
 
 Orientation.XP = new Orientation(0, 0,		{x:1,	y:0},	{x:0,	y:0});
-Orientation.YP = new Orientation(1, 60,		{x:0,	y:1},	{x:2,	y:1});
+Orientation.YP = new Orientation(1, 60,		{x:0,	y:1},	{x:0,	y:0});
 Orientation.ZP = new Orientation(2, 120,	{x:-1,	y:1},	{x:0,	y:1});
-Orientation.XM = new Orientation(3, 180,	{x:-1,	y:0},	{x:1,	y:2});
+Orientation.XM = new Orientation(3, 180,	{x:-1,	y:0},	{x:-1,	y:1});
 Orientation.YM = new Orientation(4, 210,	{x:0,	y:-1},	{x:-1,	y:1});
-Orientation.ZM = new Orientation(5, 270,	{x:1,	y:-1},	{x:1,	y:1});
+Orientation.ZM = new Orientation(5, 270,	{x:1,	y:-1},	{x:-1,	y:0});
 
 var orientations = [
 	Orientation.XP,
@@ -10280,18 +10305,11 @@ var claimedRegions = [];
 module.exports = Tile;
 function Tile(regions, x, y, orientation) {
 
-	x = x || 0;
-	y = y || 0;
+	this.x = x || 0;
+	this.y = y || 0;
 
 	this.id = tileCount++;
 	this.orientation = orientation || Orientation.XP;
-	
-	this.x = this.orientation.offsetVector.x + (x*4) + 2 + y;
-	this.y = this.orientation.offsetVector.y + (y*3) + 0 - x;
-		
-
-	// this.x = (this.orientation.offsetVector.x + 1 + y) + (x*4);
-	// this.y = (this.orientation.offsetVector.y - 3) + (y*3) - x;
 	
 	this.regions = regions;
 }
@@ -10306,8 +10324,8 @@ function getRegions(useNubs){
 		region = jQuery.extend({}, region);
 		region.tileId = tile.id
 		region.l = Orientation.rotateArray(region.l, tile.orientation.index)
-		region.x = point.x + tile.x;
-		region.y = point.y + tile.y;
+		region.x = point.x + tile.orientation.offset.x;
+		region.y = point.y + tile.orientation.offset.y;
 
 		
 		return region;
@@ -10321,6 +10339,28 @@ function getRegion(regionId){
 	return $.grep(this.regions, function(region, i){
 		return region.id === parseInt(regionId)
 	})[0];
+}
+
+Tile.prototype.getRegionSpace = getRegionSpace;
+function getRegionSpace(){
+
+	var point = {
+		x:(this.x*4) + 2 + this.y,
+		y:(this.y*3) + 0 - this.x
+	}
+
+	switch(this.orientation.index){
+		case 1:
+		case 3:
+		case 5:
+		point.x += 2;
+		point.y += 1;
+		break;
+
+
+	}
+
+	return point
 }
 },{"./Orientation.js":5,"./Region.js":7}],9:[function(require,module,exports){
 var d3 = require('d3');
@@ -10381,9 +10421,42 @@ function Renderer(selector) {
 	regionsGroup = mainGroup.append("g")
 
 	$('svg').on('click', '.region', handleClickRegion);
+	$('svg').on('click', '.nub', handleClickNub);
 	$('svg').on('mouseover', '.region', handleMouseoverRegion);
 	$('svg').on('mouseout', '.region', handleMouseoutRegion);
 	$('body').on('mousemove', handleMouseMoveSVG);
+}
+
+function handleClickRegion(){
+	var region = d3.select(this);
+	$('body').trigger('REGION_CLICKED', [region.attr("data-tile-id"), region.attr("data-region-id")])
+}
+
+function handleClickNub(){
+	var region = d3.select(this);
+	$('body').trigger('NUB_CLICKED', [parseInt(region.attr("data-x")), parseInt(region.attr("data-y")), parseInt(region.attr("data-o"))])
+}
+
+function handleMouseoverRegion(){
+	var region = d3.select(this);
+	$('body').trigger('REGION_MOUSEOVER', [region.attr("data-tile-id"), region.attr("data-region-id")])
+}
+
+function handleMouseoutRegion(){
+	var region = d3.select(this);
+	$('body').trigger('REGION_MOUSEOUT', [region.attr("data-tile-id"), region.attr("data-region-id")])
+}
+
+function handleMouseMoveSVG(){
+	//if($(event.target).is('svg')){
+		var _x = event.clientX - offsetX;
+		var _y = event.clientY - offsetY;
+
+		var x = Math.round((((_x) / d2) - (_y / (d2/.5)))/scale);
+		var y = Math.round((_y/1.5)/scale);
+
+		$('body').trigger('STAGE_MOUSEMOVE', [x, y]);
+	//}
 }
 
 Renderer.prototype.renderRegions = renderRegions;
@@ -10406,10 +10479,10 @@ function renderTiles(regions){
 
 function renderTile(tile, index){
 
-	console.log('renderTile');
+	var regionSpace = tile.getRegionSpace()
 
-	var x = (((tile.x) * d2) + (tile.y * (d2*.5)));
-	var y = (tile.y)*1.5;
+	var x = (((regionSpace.x) * d2) + (regionSpace.y * (d2*.5)));
+	var y = (regionSpace.y)*1.5;
 	var cx = 0;
 	var cy = 0;
 
@@ -10427,11 +10500,12 @@ function renderTile(tile, index){
 
 	var tileGroup = tilesGroup.append("g")
 	.attr("transform", "translate("+(x*scale)+","+(y*scale)+")")
-	.attr("class", tile.isNub ? 'tile nub' : 'tile')
+	.attr("class", tile.isNub ? 'nub' : 'tile')
 	.attr("id", 'tile-' + tile.id)
 	.attr("data-tile-id", tile.id)
 	.attr("data-x", tile.x)
-	.attr("data-y", tile.y);
+	.attr("data-y", tile.y)
+	.attr("data-o", tile.orientation.index);
 
 	tileGroup.selectAll("tri" + index)
 	.data([polygon])
@@ -10465,33 +10539,6 @@ function highlight(className, regions){
 		});
 	};
 
-}
-
-function handleClickRegion(){
-	var region = d3.select(this);
-	$('body').trigger('REGION_CLICKED', [region.attr("data-tile-id"), region.attr("data-region-id")])
-}
-
-function handleMouseoverRegion(){
-	var region = d3.select(this);
-	$('body').trigger('REGION_MOUSEOVER', [region.attr("data-tile-id"), region.attr("data-region-id")])
-}
-
-function handleMouseoutRegion(){
-	var region = d3.select(this);
-	$('body').trigger('REGION_MOUSEOUT', [region.attr("data-tile-id"), region.attr("data-region-id")])
-}
-
-function handleMouseMoveSVG(){
-	//if($(event.target).is('svg')){
-		var _x = event.clientX - offsetX;
-		var _y = event.clientY - offsetY;
-
-		var x = Math.round((((_x) / d2) - (_y / (d2/.5)))/scale);
-		var y = Math.round((_y/1.5)/scale);
-
-		$('body').trigger('STAGE_MOUSEMOVE', [x, y]);
-	//}
 }
 
 function renderRegion(region, index){

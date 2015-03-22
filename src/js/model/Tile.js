@@ -7,18 +7,11 @@ var claimedRegions = [];
 module.exports = Tile;
 function Tile(regions, x, y, orientation) {
 
-	x = x || 0;
-	y = y || 0;
+	this.x = x || 0;
+	this.y = y || 0;
 
 	this.id = tileCount++;
 	this.orientation = orientation || Orientation.XP;
-	
-	this.x = this.orientation.offsetVector.x + (x*4) + 2 + y;
-	this.y = this.orientation.offsetVector.y + (y*3) + 0 - x;
-		
-
-	// this.x = (this.orientation.offsetVector.x + 1 + y) + (x*4);
-	// this.y = (this.orientation.offsetVector.y - 3) + (y*3) - x;
 	
 	this.regions = regions;
 }
@@ -33,8 +26,8 @@ function getRegions(useNubs){
 		region = jQuery.extend({}, region);
 		region.tileId = tile.id
 		region.l = Orientation.rotateArray(region.l, tile.orientation.index)
-		region.x = point.x + tile.x;
-		region.y = point.y + tile.y;
+		region.x = point.x + tile.orientation.offset.x;
+		region.y = point.y + tile.orientation.offset.y;
 
 		
 		return region;
@@ -48,4 +41,26 @@ function getRegion(regionId){
 	return $.grep(this.regions, function(region, i){
 		return region.id === parseInt(regionId)
 	})[0];
+}
+
+Tile.prototype.getRegionSpace = getRegionSpace;
+function getRegionSpace(){
+
+	var point = {
+		x:(this.x*4) + 2 + this.y,
+		y:(this.y*3) + 0 - this.x
+	}
+
+	switch(this.orientation.index){
+		case 1:
+		case 3:
+		case 5:
+		point.x += 2;
+		point.y += 1;
+		break;
+
+
+	}
+
+	return point
 }

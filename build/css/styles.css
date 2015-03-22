@@ -182,7 +182,7 @@ th {
 }
 
 .region .hexagon {
-  fill-opacity: 0;
+  fill-opacity: .5;
 }
 .liberty .hexagon {
   fill: #005500;
@@ -201,10 +201,9 @@ th {
   stroke: black;
   pointer-events: none;
 }
-.tile.nub .triangle {
+.nub .triangle {
   fill-opacity: .25;
   fill: red;
-  pointer-events: none;
 }
 .hexagon {
   -webkit-transition: fill 0.15s ease-in-out;

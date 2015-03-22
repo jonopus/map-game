@@ -48,7 +48,16 @@ function getRegions(useNubs){
 
 	for (var i = this.tiles.length - 1; i >= 0; i--) {
 		var tile = this.tiles[i];
-		regions = regions.concat(tile.getRegions(useNubs));
+
+		var tileRegions = tile.getRegions(useNubs)
+
+		$.each(tileRegions, function(i, region){
+			var regionSpace = tile.getRegionSpace()
+			region.x = regionSpace.x + region.x
+			region.y = regionSpace.y + region.y
+		})
+
+		regions = regions.concat(tileRegions);
 	};
 
 	if(!useNubs){
@@ -285,7 +294,7 @@ function getNubTiles(regions){
 		var offsetY
 		var localX
 		var localY
-		var d
+		var o
 
 		offsetX = Math.floor(region.x/4)
 		offsetY = Math.floor(region.y/3)
@@ -293,35 +302,33 @@ function getNubTiles(regions){
 		x = Math.floor((region.x - offsetY)/4)
 		y = Math.floor((region.y + offsetX)/3)
 
+		localX = region.x - ((x*4) + y);
+		localY = region.y - ((y*3) - x);
+
+		o = localX + localY > 3;
+		
 		var matches = $.grep(nubs, function(item){
-			return item.x === x && item.y === y
+			return item.x === x && item.y === y && item.o === o
 		});
 
 		if(matches.length){
 			return;
 		}
-		
-		localX = region.x - ((x*4) + y);
-		localY = region.y - ((y*3) - x);
-
-		d = localX + localY;
 
 		nubs.push({
 			x:x,
 			y:y,
-			d:d
+			o:o
 		})
 
 	});
 
 	nubs = $.map(nubs, function(item){
-		var tile = new Tile(Region.XX, item.x, item.y, item.d > 3 ? Orientation.YP : Orientation.XP);
+		var tile = new Tile(Region.XX, item.x, item.y, item.o ? Orientation.YP : Orientation.XP);
 		tile.isNub = true;
 
 		return tile;
 	});
-
-
 
 	return nubs;
 }
@@ -345,29 +352,28 @@ function getNubs(regions){
 		}
 	}, regions[0]);
 
-	/*/
-	return [nubs[0]];
-	/*/
 	return nubs;
-	//*/
 }
 
 
 
 Game.prototype.search = search;
-function search(regions, filter, region, vector, excludeOrientation, loggedRegions){
-
+function search(regions, filter, region, vector, excludeOrientation, logged, unLogged){
 	var neighbors = [];
 
-	if(!loggedRegions){
-		loggedRegions = [];
+	if(!logged){
+		logged = [];
 	}
 
-	if(region && loggedRegions.indexOf(region) >= 0){
+	if(!unLogged){
+		unLogged = regions.slice();
+	}
+
+	if(region && logged.indexOf(region) >= 0){
 		return neighbors;
 	}
 
-	loggedRegions.push(region);
+	region && logged.push(unLogged.splice(unLogged.indexOf(region), 1)[0]);
 
 	if(region){
 		var orientations = region.getOrientations(0);
@@ -387,12 +393,16 @@ function search(regions, filter, region, vector, excludeOrientation, loggedRegio
 
 			var neighbor = getRegionAt(regions, vector)
 
-			neighbors = neighbors.concat(search(regions, filter, neighbor, vector, orientation, loggedRegions));
+			neighbors = neighbors.concat(search(regions, filter, neighbor, vector, orientation, logged, unLogged));
 		};
 	}
 
 	if(filter(region, vector, excludeOrientation)){
 		neighbors.push(region);
+	}
+
+	if(unLogged.length){
+		neighbors = neighbors.concat(search(regions, filter, unLogged[0], vector, orientation, logged, unLogged));
 	}
 
 	return neighbors;
