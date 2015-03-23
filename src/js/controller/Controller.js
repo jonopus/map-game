@@ -120,42 +120,68 @@ function Controller(newGame, newRenderer) {
 
 	var regions = []
 	var odd = []
-	for (var x = 30 - 1; x >= -5; x--) {
 
-		for (var y = 20 - 1; y >= -10; y--) {
+	for (var x = -5; x < 30; x++) {
+	
+		for (var y = -10; y < 20; y++) {
 			
 			var region = new Region(x, y)
-			regions.push(region)
-
-
 
 			offsetX = (x-1)/4
 			offsetY = y/3
 
 			_x = ( (x)				-1		)/4
-			_y = ( (y+offsetX)		+0		) /3
+			_y = ((offsetX)/3) + (y)/3
 
 			_x = Math.floor(_x)
 			_y = Math.floor(_y)
-
 
 			row = _y
-			col = _x
-
-
-			offsetX = (x-1)/4
-			offsetY = y/3
+			col = 0
 
 			_x = ( (x)				-1	-row	)/4
-			_y = ( (y+offsetX)		+0	-(row/5.5)		) /3
-
+			_y = ((offsetX)/3) + (y/3)
+			
 			_x = Math.floor(_x)
 			_y = Math.floor(_y)
 
+			var shiftGroupX = ((x-_y)-1)%4
+
+			if(
+				(
+					(
+						_x === 0 ||
+						_x === 1
+					)
+					// &&
+					// (
+					// 	_y === 0 ||
+					// 	_y === 1 ||
+					// 	_y === 2 ||
+					// 	_y === 3
+					// )
+				) && (
+					(4 -shiftGroupX) <= ((_y)%4)
+				)
+			) {
+				console.log(
+					_x,
+					_y,
+					shiftGroupX
+				);
+
+				// _y = ((offsetX)/3) + (y/3) - (1/3)
+				// _y = Math.floor(_y)
+				region.highlight = true
+
+			}else{
+			}
 			
+			//region.highlight = _y%2
+			regions.push(region)
 
 			
-
+			
 			
 			grid = (
 				_x
@@ -163,7 +189,6 @@ function Controller(newGame, newRenderer) {
 				_y
 			)%2;
 
-			region.highlight = _y%2
 
 			if(grid){
 				odd.push(region)
