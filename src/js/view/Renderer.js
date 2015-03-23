@@ -10,6 +10,10 @@ var scale = 20;
 var offsetX = 0;
 var offsetY = 150;
 var d2 = Math.sqrt(3);
+var rotate = 90 + Math.atan((d2*3.5)/-1.5) * (180/Math.PI);
+
+console.log(d2,rotate);
+
 var hexagon = [
 	{x:(d2*-.5) + d2,		y:(-1) + .5},
 	{x:(d2*-.5) + d2,		y:(-1) + 1.5},
@@ -44,8 +48,10 @@ function Renderer(selector) {
 	.attr("width", 1000)
 	.attr("height", 900)
 	
+
+
 	mainGroup = svg.append("g")
-	.attr("transform", "translate(" + offsetX + "," + offsetY + ")");
+	.attr("transform", "translate(" + offsetX + "," + offsetY + ") rotate(" + rotate + ")");
 
 	mainGroup.append("circle")
 	.attr("class", 'claim-mark')
@@ -217,6 +223,7 @@ function renderRegion(region, index){
 		'region'
 		+ (region.claimed ? ' claimed ' + region.claimed.player.color : '')
 	)
+	.style("opacity", region.highlight ? 1 : .5)
 	.attr("data-region-id", region.id)
 	.attr("data-tile-id", region.tileId)
 	.attr("data-x", region.x)

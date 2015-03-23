@@ -9532,11 +9532,11 @@ function Controller(newGame, newRenderer) {
 	game = newGame;
 	renderer = newRenderer;
 
-	$('body').on('REGION_CLICKED', $.proxy(this.handleRegionClicked, this));
-	$('body').on('NUB_CLICKED', $.proxy(this.handleNubClicked, this));
-	$('body').on('REGION_MOUSEOVER', $.proxy(this.handleRegionMouseover, this));
-	$('body').on('REGION_MOUSEOUT', $.proxy(this.handleRegionMouseout, this));
-	$('body').on('STAGE_MOUSEMOVE', $.proxy(this.handleStageMouseMove, this));
+	// $('body').on('REGION_CLICKED', $.proxy(this.handleRegionClicked, this));
+	// $('body').on('NUB_CLICKED', $.proxy(this.handleNubClicked, this));
+	// $('body').on('REGION_MOUSEOVER', $.proxy(this.handleRegionMouseover, this));
+	// $('body').on('REGION_MOUSEOUT', $.proxy(this.handleRegionMouseout, this));
+	// $('body').on('STAGE_MOUSEMOVE', $.proxy(this.handleStageMouseMove, this));
 
 	/* // All Tiles
 	game.addTile(new Tile(Region.O3, -4, -3));
@@ -9582,55 +9582,109 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.O3, 0, 2));
 	game.addTile(new Tile(Region.O3, 0, 3));
 	game.addTile(new Tile(Region.O3, 0, 4));
+	game.addTile(new Tile(Region.O3, 0, 5));
+	game.addTile(new Tile(Region.O3, 0, 6));
 	game.addTile(new Tile(Region.O3, 1, 0));
 	game.addTile(new Tile(Region.O3, 1, 1));
 	game.addTile(new Tile(Region.O3, 1, 2));
 	game.addTile(new Tile(Region.O3, 1, 3));
 	game.addTile(new Tile(Region.O3, 1, 4));
+	game.addTile(new Tile(Region.O3, 1, 5));
+	game.addTile(new Tile(Region.O3, 1, 6));
 	game.addTile(new Tile(Region.O3, 2, 0));
 	game.addTile(new Tile(Region.O3, 2, 1));
 	game.addTile(new Tile(Region.O3, 2, 2));
 	game.addTile(new Tile(Region.O3, 2, 3));
 	game.addTile(new Tile(Region.O3, 2, 4));
+	game.addTile(new Tile(Region.O3, 2, 5));
+	game.addTile(new Tile(Region.O3, 2, 6));
 	game.addTile(new Tile(Region.O3, 3, 0));
 	game.addTile(new Tile(Region.O3, 3, 1));
 	game.addTile(new Tile(Region.O3, 3, 2));
 	game.addTile(new Tile(Region.O3, 3, 3));
 	game.addTile(new Tile(Region.O3, 3, 4));
+	game.addTile(new Tile(Region.O3, 3, 5));
+	game.addTile(new Tile(Region.O3, 3, 6));
 	game.addTile(new Tile(Region.O3, 4, 0));
 	game.addTile(new Tile(Region.O3, 4, 1));
 	game.addTile(new Tile(Region.O3, 4, 2));
 	game.addTile(new Tile(Region.O3, 4, 3));
 	game.addTile(new Tile(Region.O3, 4, 4));
+	game.addTile(new Tile(Region.O3, 4, 5));
+	game.addTile(new Tile(Region.O3, 4, 6));
 	game.addTile(new Tile(Region.O3, 5, 0));
 	game.addTile(new Tile(Region.O3, 5, 1));
 	game.addTile(new Tile(Region.O3, 5, 2));
 	game.addTile(new Tile(Region.O3, 5, 3));
 	game.addTile(new Tile(Region.O3, 5, 4));
+	game.addTile(new Tile(Region.O3, 5, 5));
+	game.addTile(new Tile(Region.O3, 5, 6));
 
+	function rotatePoint(point, angle, origin) {
+
+		origin = origin || {x:0,y:0}
+
+		angle = angle * Math.PI / 180.0;
+		return {
+			x: Math.cos(angle) * (point.x-origin.x) - Math.sin(angle) * (point.y-origin.y) + origin.x,
+			y: Math.sin(angle) * (point.x-origin.x) + Math.cos(angle) * (point.y-origin.y) + origin.y
+		};
+	}
+
+	var d2 = Math.sqrt(3);
+	var a = d2*3.5
+	var o = 1.5
+	var h = Math.sqrt((a*a) + (o*o));
+	var rotate = 90 + Math.atan(a/-o) * (180/Math.PI);
+
+	var scale = h/(d2*4)
 
 	var regions = []
 	var odd = []
-	for (var x = 30 - 1; x >= 0; x--) {
+	for (var x = 30 - 1; x >= -5; x--) {
 
-		for (var y = 20 - 1; y >= 0; y--) {
+		for (var y = 20 - 1; y >= -10; y--) {
+			
 			var region = new Region(x, y)
 			regions.push(region)
 
-			offsetX = Math.floor((x-1)/5)
-			offsetY = Math.floor((y)/3)
 
-			_x = Math.floor((x -1)/5)
-			_y = Math.floor((y - offsetX)/3)
 
-			localX = x - ((_x*4) + y);
-			localY = y - ((_y*3) - x);
-	
+			offsetX = (x-1)/4
+			offsetY = y/3
+
+			_x = ( (x)				-1		)/4
+			_y = ( (y+offsetX)		+0		) /3
+
+			_x = Math.floor(_x)
+			_y = Math.floor(_y)
+
+
+			row = _y
+			col = _x
+
+
+			offsetX = (x-1)/4
+			offsetY = y/3
+
+			_x = ( (x)				-1	-row	)/4
+			_y = ( (y+offsetX)		+0	-(row/5.5)		) /3
+
+			_x = Math.floor(_x)
+			_y = Math.floor(_y)
+
+			
+
+			
+
+			
 			grid = (
 				_x
 				+
 				_y
 			)%2;
+
+			region.highlight = _y%2
 
 			if(grid){
 				odd.push(region)
@@ -10521,6 +10575,10 @@ var scale = 20;
 var offsetX = 0;
 var offsetY = 150;
 var d2 = Math.sqrt(3);
+var rotate = 90 + Math.atan((d2*3.5)/-1.5) * (180/Math.PI);
+
+console.log(d2,rotate);
+
 var hexagon = [
 	{x:(d2*-.5) + d2,		y:(-1) + .5},
 	{x:(d2*-.5) + d2,		y:(-1) + 1.5},
@@ -10555,8 +10613,10 @@ function Renderer(selector) {
 	.attr("width", 1000)
 	.attr("height", 900)
 	
+
+
 	mainGroup = svg.append("g")
-	.attr("transform", "translate(" + offsetX + "," + offsetY + ")");
+	.attr("transform", "translate(" + offsetX + "," + offsetY + ") rotate(" + rotate + ")");
 
 	mainGroup.append("circle")
 	.attr("class", 'claim-mark')
@@ -10728,6 +10788,7 @@ function renderRegion(region, index){
 		'region'
 		+ (region.claimed ? ' claimed ' + region.claimed.player.color : '')
 	)
+	.style("opacity", region.highlight ? 1 : .5)
 	.attr("data-region-id", region.id)
 	.attr("data-tile-id", region.tileId)
 	.attr("data-x", region.x)
