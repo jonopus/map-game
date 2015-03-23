@@ -7,8 +7,8 @@ var mainGroup;
 var regionsGroup;
 var tilesGroup;
 var scale = 20;
-var offsetX = 500;
-var offsetY = 350;
+var offsetX = 0;
+var offsetY = 150;
 var d2 = Math.sqrt(3);
 var hexagon = [
 	{x:(d2*-.5) + d2,		y:(-1) + .5},

@@ -29,6 +29,7 @@ function Controller(newGame, newRenderer) {
 
 	//starting set
 	
+	/*
 	game.addTile(new Tile(Region.O3, -1, -1, Orientation.YP));
 	game.addTile(new Tile(Region.O3, -1, 0));
 	game.addTile(new Tile(Region.O3, -1, 0, Orientation.YP));
@@ -51,8 +52,75 @@ function Controller(newGame, newRenderer) {
 	game.addPlayer(new Player('Red', 'red'));
 	game.addPlayer(new Player('Blue', 'blue'));
 	game.nextPlayer()
+	*/
 
-	render(game.getRegions())
+	//render(game.getRegions())
+
+	game.addTile(new Tile(Region.O3, 0, 0));
+	game.addTile(new Tile(Region.O3, 0, 1));
+	game.addTile(new Tile(Region.O3, 0, 2));
+	game.addTile(new Tile(Region.O3, 0, 3));
+	game.addTile(new Tile(Region.O3, 0, 4));
+	game.addTile(new Tile(Region.O3, 1, 0));
+	game.addTile(new Tile(Region.O3, 1, 1));
+	game.addTile(new Tile(Region.O3, 1, 2));
+	game.addTile(new Tile(Region.O3, 1, 3));
+	game.addTile(new Tile(Region.O3, 1, 4));
+	game.addTile(new Tile(Region.O3, 2, 0));
+	game.addTile(new Tile(Region.O3, 2, 1));
+	game.addTile(new Tile(Region.O3, 2, 2));
+	game.addTile(new Tile(Region.O3, 2, 3));
+	game.addTile(new Tile(Region.O3, 2, 4));
+	game.addTile(new Tile(Region.O3, 3, 0));
+	game.addTile(new Tile(Region.O3, 3, 1));
+	game.addTile(new Tile(Region.O3, 3, 2));
+	game.addTile(new Tile(Region.O3, 3, 3));
+	game.addTile(new Tile(Region.O3, 3, 4));
+	game.addTile(new Tile(Region.O3, 4, 0));
+	game.addTile(new Tile(Region.O3, 4, 1));
+	game.addTile(new Tile(Region.O3, 4, 2));
+	game.addTile(new Tile(Region.O3, 4, 3));
+	game.addTile(new Tile(Region.O3, 4, 4));
+	game.addTile(new Tile(Region.O3, 5, 0));
+	game.addTile(new Tile(Region.O3, 5, 1));
+	game.addTile(new Tile(Region.O3, 5, 2));
+	game.addTile(new Tile(Region.O3, 5, 3));
+	game.addTile(new Tile(Region.O3, 5, 4));
+
+
+	var regions = []
+	var odd = []
+	for (var x = 30 - 1; x >= 0; x--) {
+
+		for (var y = 20 - 1; y >= 0; y--) {
+			var region = new Region(x, y)
+			regions.push(region)
+
+			offsetX = Math.floor((x-1)/5)
+			offsetY = Math.floor((y)/3)
+
+			_x = Math.floor((x -1)/5)
+			_y = Math.floor((y - offsetX)/3)
+
+			localX = x - ((_x*4) + y);
+			localY = y - ((_y*3) - x);
+	
+			grid = (
+				_x
+				+
+				_y
+			)%2;
+
+			if(grid){
+				odd.push(region)
+			}
+		};
+	};
+	
+	var tiles = game.getTiles();
+	renderer.renderTiles(tiles);
+	renderer.renderRegions(regions);
+	renderer.highlight('liberty', odd);
 }
 
 function render(regions) {
