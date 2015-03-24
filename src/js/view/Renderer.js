@@ -7,8 +7,8 @@ var mainGroup;
 var regionsGroup;
 var tilesGroup;
 var scale = 20;
-var offsetX = 0;
-var offsetY = 150;
+var width = $(window).width();
+var height = $(window).height();
 var d2 = Math.sqrt(3);
 var rotate = 90 + Math.atan((d2*3.5)/-1.5) * (180/Math.PI);
 
@@ -43,13 +43,13 @@ module.exports = Renderer;
 function Renderer(selector) {
 	svg = d3.select("body")
 	.append("svg")
-	.attr("width", 1000)
-	.attr("height", 900)
+	.attr("width", width)
+	.attr("height", height)
 	
 
 
 	mainGroup = svg.append("g")
-	.attr("transform", "translate(" + offsetX + "," + offsetY + ") rotate(" + rotate + ")");
+	.attr("transform", "translate(" + (width/2) + "," + (height/2) + ") rotate(" + rotate + ")");
 
 	mainGroup.append("circle")
 	.attr("class", 'claim-mark')
@@ -89,13 +89,13 @@ function handleMouseoutRegion(){
 
 function handleMouseMoveSVG(){
 	//if($(event.target).is('svg')){
-		var _x = event.clientX - offsetX;
-		var _y = event.clientY - offsetY;
+		// var _x = event.clientX - offsetX;
+		// var _y = event.clientY - offsetY;
 
-		var x = Math.round((((_x) / d2) - (_y / (d2/.5)))/scale);
-		var y = Math.round((_y/1.5)/scale);
+		// var x = Math.round((((_x) / d2) - (_y / (d2/.5)))/scale);
+		// var y = Math.round((_y/1.5)/scale);
 
-		$('body').trigger('STAGE_MOUSEMOVE', [x, y]);
+		$('body').trigger('STAGE_MOUSEMOVE', [0, 0]);
 	//}
 }
 

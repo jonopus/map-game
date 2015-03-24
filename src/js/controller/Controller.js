@@ -11,11 +11,11 @@ function Controller(newGame, newRenderer) {
 	game = newGame;
 	renderer = newRenderer;
 
-	// $('body').on('REGION_CLICKED', $.proxy(this.handleRegionClicked, this));
-	// $('body').on('NUB_CLICKED', $.proxy(this.handleNubClicked, this));
-	// $('body').on('REGION_MOUSEOVER', $.proxy(this.handleRegionMouseover, this));
-	// $('body').on('REGION_MOUSEOUT', $.proxy(this.handleRegionMouseout, this));
-	// $('body').on('STAGE_MOUSEMOVE', $.proxy(this.handleStageMouseMove, this));
+	$('body').on('REGION_CLICKED', $.proxy(this.handleRegionClicked, this));
+	$('body').on('NUB_CLICKED', $.proxy(this.handleNubClicked, this));
+	$('body').on('REGION_MOUSEOVER', $.proxy(this.handleRegionMouseover, this));
+	$('body').on('REGION_MOUSEOUT', $.proxy(this.handleRegionMouseout, this));
+	$('body').on('STAGE_MOUSEMOVE', $.proxy(this.handleStageMouseMove, this));
 
 	/* // All Tiles
 	game.addTile(new Tile(Region.O3, -4, -3));
@@ -27,9 +27,7 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.C1, 2, 1));
 	*/
 
-	//starting set
-	
-	/*
+	//*/ //starting set
 	game.addTile(new Tile(Region.O3, -1, -1, Orientation.YP));
 	game.addTile(new Tile(Region.O3, -1, 0));
 	game.addTile(new Tile(Region.O3, -1, 0, Orientation.YP));
@@ -52,10 +50,11 @@ function Controller(newGame, newRenderer) {
 	game.addPlayer(new Player('Red', 'red'));
 	game.addPlayer(new Player('Blue', 'blue'));
 	game.nextPlayer()
-	*/
+	//*/
 
-	//render(game.getRegions())
+	render(game.getRegions())
 
+	/* grid test
 	game.addTile(new Tile(Region.O3, 0, 0));
 	game.addTile(new Tile(Region.O3, 0, 1));
 	game.addTile(new Tile(Region.O3, 0, 2));
@@ -63,6 +62,8 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.O3, 0, 4));
 	game.addTile(new Tile(Region.O3, 0, 5));
 	game.addTile(new Tile(Region.O3, 0, 6));
+	game.addTile(new Tile(Region.O3, 0, 7));
+	game.addTile(new Tile(Region.O3, 0, 8));
 	game.addTile(new Tile(Region.O3, 1, 0));
 	game.addTile(new Tile(Region.O3, 1, 1));
 	game.addTile(new Tile(Region.O3, 1, 2));
@@ -70,6 +71,8 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.O3, 1, 4));
 	game.addTile(new Tile(Region.O3, 1, 5));
 	game.addTile(new Tile(Region.O3, 1, 6));
+	game.addTile(new Tile(Region.O3, 1, 7));
+	game.addTile(new Tile(Region.O3, 1, 8));
 	game.addTile(new Tile(Region.O3, 2, 0));
 	game.addTile(new Tile(Region.O3, 2, 1));
 	game.addTile(new Tile(Region.O3, 2, 2));
@@ -77,6 +80,8 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.O3, 2, 4));
 	game.addTile(new Tile(Region.O3, 2, 5));
 	game.addTile(new Tile(Region.O3, 2, 6));
+	game.addTile(new Tile(Region.O3, 2, 7));
+	game.addTile(new Tile(Region.O3, 2, 8));
 	game.addTile(new Tile(Region.O3, 3, 0));
 	game.addTile(new Tile(Region.O3, 3, 1));
 	game.addTile(new Tile(Region.O3, 3, 2));
@@ -84,6 +89,8 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.O3, 3, 4));
 	game.addTile(new Tile(Region.O3, 3, 5));
 	game.addTile(new Tile(Region.O3, 3, 6));
+	game.addTile(new Tile(Region.O3, 3, 7));
+	game.addTile(new Tile(Region.O3, 3, 8));
 	game.addTile(new Tile(Region.O3, 4, 0));
 	game.addTile(new Tile(Region.O3, 4, 1));
 	game.addTile(new Tile(Region.O3, 4, 2));
@@ -91,6 +98,8 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.O3, 4, 4));
 	game.addTile(new Tile(Region.O3, 4, 5));
 	game.addTile(new Tile(Region.O3, 4, 6));
+	game.addTile(new Tile(Region.O3, 4, 7));
+	game.addTile(new Tile(Region.O3, 4, 8));
 	game.addTile(new Tile(Region.O3, 5, 0));
 	game.addTile(new Tile(Region.O3, 5, 1));
 	game.addTile(new Tile(Region.O3, 5, 2));
@@ -98,6 +107,8 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.O3, 5, 4));
 	game.addTile(new Tile(Region.O3, 5, 5));
 	game.addTile(new Tile(Region.O3, 5, 6));
+	game.addTile(new Tile(Region.O3, 5, 7));
+	game.addTile(new Tile(Region.O3, 5, 8));
 
 	function rotatePoint(point, angle, origin) {
 
@@ -121,72 +132,30 @@ function Controller(newGame, newRenderer) {
 	var regions = []
 	var odd = []
 
+
+	var w = 4
+	var h = 3 // triangle size
+
+	var wrap = 6
+
 	for (var x = -5; x < 30; x++) {
 	
-		for (var y = -10; y < 20; y++) {
+		for (var y = -10; y < 30; y++) {
 			
 			var region = new Region(x, y)
 
-			offsetX = (x-1)/4
-			offsetY = y/3
-
-			_x = ( (x)				-1		)/4
-			_y = ((offsetX)/3) + (y)/3
-
-			_x = Math.floor(_x)
-			_y = Math.floor(_y)
-
-			row = _y
-			col = 0
-
-			_x = ( (x)				-1	-row	)/4
-			_y = ((offsetX)/3) + (y/3)
+			var point = Tile.getTileSpace(region)
 			
-			_x = Math.floor(_x)
-			_y = Math.floor(_y)
-
-			var shiftGroupX = ((x-_y)-1)%4
-
-			if(
-				(
-					(
-						_x === 0 ||
-						_x === 1
-					)
-					// &&
-					// (
-					// 	_y === 0 ||
-					// 	_y === 1 ||
-					// 	_y === 2 ||
-					// 	_y === 3
-					// )
-				) && (
-					(4 -shiftGroupX) <= ((_y)%4)
-				)
-			) {
-				console.log(
-					_x,
-					_y,
-					shiftGroupX
-				);
-
-				// _y = ((offsetX)/3) + (y/3) - (1/3)
-				// _y = Math.floor(_y)
-				region.highlight = true
-
-			}else{
-			}
-			
-			//region.highlight = _y%2
+			region.highlight = point.y%2
 			regions.push(region)
 
 			
 			
 			
 			grid = (
-				_x
+				point.x
 				+
-				_y
+				point.y
 			)%2;
 
 
@@ -200,23 +169,12 @@ function Controller(newGame, newRenderer) {
 	renderer.renderTiles(tiles);
 	renderer.renderRegions(regions);
 	renderer.highlight('liberty', odd);
+	 */
 }
 
 function render(regions) {
-	var tiles = game.getTiles();
-	
-	
-	//* // Test
-	var nub = new Region(0,1);
-	var test = [nub]
-	var nubTiles = game.getNubTiles(test);
 
-	regions = regions.concat(test);
-	tiles = tiles.concat(nubTiles)
-	//*/
-
-
-	/* // Default
+	//* // Default
 	var nubs = game.getNubs(regions);
 	var nubTiles = game.getNubTiles(nubs);
 
@@ -236,12 +194,6 @@ function render(regions) {
 	renderer.renderRegions(regions);
 	renderer.highlight('capture', ends);
 	//*/
-
-	
-	renderer.renderTiles(tiles);
-	renderer.renderRegions(regions);
-
-	renderer.highlight('liberty', test);
 }
 
 Controller.prototype.handleRegionMouseover = handleRegionMouseover;

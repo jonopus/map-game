@@ -372,7 +372,11 @@ function getNubs(regions){
 		}
 	}, regions[0]);
 
-	return [nubs[1]];
+	//*/
+	return nubs;
+	/*/
+	return [nubs[0]];
+	//*/
 }
 
 

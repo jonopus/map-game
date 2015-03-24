@@ -43,30 +43,65 @@ function getRegion(regionId){
 	})[0];
 }
 
+var d2 = Math.sqrt(3);
+var a = d2*3.5
+var o = 1.5
+var h = Math.sqrt((a*a) + (o*o));
+var rotate = 90 + Math.atan(a/-o) * (180/Math.PI);
+var scale = h/(d2*4)
+var w = 4
+var h = 3 // triangle size
+
 Tile.getTileSpace = function(region){
+	var x = region.x;
+	var y = region.y;
 
-	var x
-	var y
-	var offsetX
-	var offsetY
-	var localX
-	var localY
-	var o
+	var _x;
+	var _y;
 
-	offsetX = Math.floor(region.x/4)
-	offsetY = Math.floor(region.y/3)
+	_x = Math.floor(
+		(x-1)	/w
+	)
+	_y = Math.floor(
+		(
+			y+_x
+		)	/h
+	)
+	_x = Math.floor(
+		(
+			x-1-_y
+		)	/w
+	)
+	_y = Math.floor(
+		(
+			y+_x
+		)	/h
+	)
+	_x = Math.floor(
+		(
+			x-1-_y
+		)	/w
+	)
+	_y = Math.floor(
+		(
+			y+_x
+		)	/h
+	)
 
-	x = Math.floor((region.x - offsetY)/4)
-	y = Math.floor((region.y + offsetX)/3)
+	var o = ((region.x+400)%4) + ((region.y+300)%3) > 3;
 
-	localX = region.x - ((x*4) + y);
-	localY = region.y - ((y*3) - x);
+	console.log(
+		'getTileSpace',
+		((region.x+400)%4),
+		((region.y+300)%3),
+		((region.x+400)%4) + ((region.y+300)%3),
+		o
+	);
 
-	o = localX + localY > 3;
 
 	return {
-		x:x,
-		y:y,
+		x:_x,
+		y:_y,
 		o:o
 	}
 }

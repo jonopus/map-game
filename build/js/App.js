@@ -9532,11 +9532,11 @@ function Controller(newGame, newRenderer) {
 	game = newGame;
 	renderer = newRenderer;
 
-	// $('body').on('REGION_CLICKED', $.proxy(this.handleRegionClicked, this));
-	// $('body').on('NUB_CLICKED', $.proxy(this.handleNubClicked, this));
-	// $('body').on('REGION_MOUSEOVER', $.proxy(this.handleRegionMouseover, this));
-	// $('body').on('REGION_MOUSEOUT', $.proxy(this.handleRegionMouseout, this));
-	// $('body').on('STAGE_MOUSEMOVE', $.proxy(this.handleStageMouseMove, this));
+	$('body').on('REGION_CLICKED', $.proxy(this.handleRegionClicked, this));
+	$('body').on('NUB_CLICKED', $.proxy(this.handleNubClicked, this));
+	$('body').on('REGION_MOUSEOVER', $.proxy(this.handleRegionMouseover, this));
+	$('body').on('REGION_MOUSEOUT', $.proxy(this.handleRegionMouseout, this));
+	$('body').on('STAGE_MOUSEMOVE', $.proxy(this.handleStageMouseMove, this));
 
 	/* // All Tiles
 	game.addTile(new Tile(Region.O3, -4, -3));
@@ -9548,9 +9548,7 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.C1, 2, 1));
 	*/
 
-	//starting set
-	
-	/*
+	//*/ //starting set
 	game.addTile(new Tile(Region.O3, -1, -1, Orientation.YP));
 	game.addTile(new Tile(Region.O3, -1, 0));
 	game.addTile(new Tile(Region.O3, -1, 0, Orientation.YP));
@@ -9573,10 +9571,11 @@ function Controller(newGame, newRenderer) {
 	game.addPlayer(new Player('Red', 'red'));
 	game.addPlayer(new Player('Blue', 'blue'));
 	game.nextPlayer()
-	*/
+	//*/
 
-	//render(game.getRegions())
+	render(game.getRegions())
 
+	/* grid test
 	game.addTile(new Tile(Region.O3, 0, 0));
 	game.addTile(new Tile(Region.O3, 0, 1));
 	game.addTile(new Tile(Region.O3, 0, 2));
@@ -9584,6 +9583,8 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.O3, 0, 4));
 	game.addTile(new Tile(Region.O3, 0, 5));
 	game.addTile(new Tile(Region.O3, 0, 6));
+	game.addTile(new Tile(Region.O3, 0, 7));
+	game.addTile(new Tile(Region.O3, 0, 8));
 	game.addTile(new Tile(Region.O3, 1, 0));
 	game.addTile(new Tile(Region.O3, 1, 1));
 	game.addTile(new Tile(Region.O3, 1, 2));
@@ -9591,6 +9592,8 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.O3, 1, 4));
 	game.addTile(new Tile(Region.O3, 1, 5));
 	game.addTile(new Tile(Region.O3, 1, 6));
+	game.addTile(new Tile(Region.O3, 1, 7));
+	game.addTile(new Tile(Region.O3, 1, 8));
 	game.addTile(new Tile(Region.O3, 2, 0));
 	game.addTile(new Tile(Region.O3, 2, 1));
 	game.addTile(new Tile(Region.O3, 2, 2));
@@ -9598,6 +9601,8 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.O3, 2, 4));
 	game.addTile(new Tile(Region.O3, 2, 5));
 	game.addTile(new Tile(Region.O3, 2, 6));
+	game.addTile(new Tile(Region.O3, 2, 7));
+	game.addTile(new Tile(Region.O3, 2, 8));
 	game.addTile(new Tile(Region.O3, 3, 0));
 	game.addTile(new Tile(Region.O3, 3, 1));
 	game.addTile(new Tile(Region.O3, 3, 2));
@@ -9605,6 +9610,8 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.O3, 3, 4));
 	game.addTile(new Tile(Region.O3, 3, 5));
 	game.addTile(new Tile(Region.O3, 3, 6));
+	game.addTile(new Tile(Region.O3, 3, 7));
+	game.addTile(new Tile(Region.O3, 3, 8));
 	game.addTile(new Tile(Region.O3, 4, 0));
 	game.addTile(new Tile(Region.O3, 4, 1));
 	game.addTile(new Tile(Region.O3, 4, 2));
@@ -9612,6 +9619,8 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.O3, 4, 4));
 	game.addTile(new Tile(Region.O3, 4, 5));
 	game.addTile(new Tile(Region.O3, 4, 6));
+	game.addTile(new Tile(Region.O3, 4, 7));
+	game.addTile(new Tile(Region.O3, 4, 8));
 	game.addTile(new Tile(Region.O3, 5, 0));
 	game.addTile(new Tile(Region.O3, 5, 1));
 	game.addTile(new Tile(Region.O3, 5, 2));
@@ -9619,6 +9628,8 @@ function Controller(newGame, newRenderer) {
 	game.addTile(new Tile(Region.O3, 5, 4));
 	game.addTile(new Tile(Region.O3, 5, 5));
 	game.addTile(new Tile(Region.O3, 5, 6));
+	game.addTile(new Tile(Region.O3, 5, 7));
+	game.addTile(new Tile(Region.O3, 5, 8));
 
 	function rotatePoint(point, angle, origin) {
 
@@ -9642,72 +9653,30 @@ function Controller(newGame, newRenderer) {
 	var regions = []
 	var odd = []
 
+
+	var w = 4
+	var h = 3 // triangle size
+
+	var wrap = 6
+
 	for (var x = -5; x < 30; x++) {
 	
-		for (var y = -10; y < 20; y++) {
+		for (var y = -10; y < 30; y++) {
 			
 			var region = new Region(x, y)
 
-			offsetX = (x-1)/4
-			offsetY = y/3
-
-			_x = ( (x)				-1		)/4
-			_y = ((offsetX)/3) + (y)/3
-
-			_x = Math.floor(_x)
-			_y = Math.floor(_y)
-
-			row = _y
-			col = 0
-
-			_x = ( (x)				-1	-row	)/4
-			_y = ((offsetX)/3) + (y/3)
+			var point = Tile.getTileSpace(region)
 			
-			_x = Math.floor(_x)
-			_y = Math.floor(_y)
-
-			var shiftGroupX = ((x-_y)-1)%4
-
-			if(
-				(
-					(
-						_x === 0 ||
-						_x === 1
-					)
-					// &&
-					// (
-					// 	_y === 0 ||
-					// 	_y === 1 ||
-					// 	_y === 2 ||
-					// 	_y === 3
-					// )
-				) && (
-					(4 -shiftGroupX) <= ((_y)%4)
-				)
-			) {
-				console.log(
-					_x,
-					_y,
-					shiftGroupX
-				);
-
-				// _y = ((offsetX)/3) + (y/3) - (1/3)
-				// _y = Math.floor(_y)
-				region.highlight = true
-
-			}else{
-			}
-			
-			//region.highlight = _y%2
+			region.highlight = point.y%2
 			regions.push(region)
 
 			
 			
 			
 			grid = (
-				_x
+				point.x
 				+
-				_y
+				point.y
 			)%2;
 
 
@@ -9721,23 +9690,12 @@ function Controller(newGame, newRenderer) {
 	renderer.renderTiles(tiles);
 	renderer.renderRegions(regions);
 	renderer.highlight('liberty', odd);
+	 */
 }
 
 function render(regions) {
-	var tiles = game.getTiles();
-	
-	
-	//* // Test
-	var nub = new Region(0,1);
-	var test = [nub]
-	var nubTiles = game.getNubTiles(test);
 
-	regions = regions.concat(test);
-	tiles = tiles.concat(nubTiles)
-	//*/
-
-
-	/* // Default
+	//* // Default
 	var nubs = game.getNubs(regions);
 	var nubTiles = game.getNubTiles(nubs);
 
@@ -9757,12 +9715,6 @@ function render(regions) {
 	renderer.renderRegions(regions);
 	renderer.highlight('capture', ends);
 	//*/
-
-	
-	renderer.renderTiles(tiles);
-	renderer.renderRegions(regions);
-
-	renderer.highlight('liberty', test);
 }
 
 Controller.prototype.handleRegionMouseover = handleRegionMouseover;
@@ -10225,7 +10177,11 @@ function getNubs(regions){
 		}
 	}, regions[0]);
 
-	return [nubs[1]];
+	//*/
+	return nubs;
+	/*/
+	return [nubs[0]];
+	//*/
 }
 
 
@@ -10560,30 +10516,65 @@ function getRegion(regionId){
 	})[0];
 }
 
+var d2 = Math.sqrt(3);
+var a = d2*3.5
+var o = 1.5
+var h = Math.sqrt((a*a) + (o*o));
+var rotate = 90 + Math.atan(a/-o) * (180/Math.PI);
+var scale = h/(d2*4)
+var w = 4
+var h = 3 // triangle size
+
 Tile.getTileSpace = function(region){
+	var x = region.x;
+	var y = region.y;
 
-	var x
-	var y
-	var offsetX
-	var offsetY
-	var localX
-	var localY
-	var o
+	var _x;
+	var _y;
 
-	offsetX = Math.floor(region.x/4)
-	offsetY = Math.floor(region.y/3)
+	_x = Math.floor(
+		(x-1)	/w
+	)
+	_y = Math.floor(
+		(
+			y+_x
+		)	/h
+	)
+	_x = Math.floor(
+		(
+			x-1-_y
+		)	/w
+	)
+	_y = Math.floor(
+		(
+			y+_x
+		)	/h
+	)
+	_x = Math.floor(
+		(
+			x-1-_y
+		)	/w
+	)
+	_y = Math.floor(
+		(
+			y+_x
+		)	/h
+	)
 
-	x = Math.floor((region.x - offsetY)/4)
-	y = Math.floor((region.y + offsetX)/3)
+	var o = ((region.x+400)%4) + ((region.y+300)%3) > 3;
 
-	localX = region.x - ((x*4) + y);
-	localY = region.y - ((y*3) - x);
+	console.log(
+		'getTileSpace',
+		((region.x+400)%4),
+		((region.y+300)%3),
+		((region.x+400)%4) + ((region.y+300)%3),
+		o
+	);
 
-	o = localX + localY > 3;
 
 	return {
-		x:x,
-		y:y,
+		x:_x,
+		y:_y,
 		o:o
 	}
 }
@@ -10597,8 +10588,8 @@ var mainGroup;
 var regionsGroup;
 var tilesGroup;
 var scale = 20;
-var offsetX = 0;
-var offsetY = 150;
+var width = $(window).width();
+var height = $(window).height();
 var d2 = Math.sqrt(3);
 var rotate = 90 + Math.atan((d2*3.5)/-1.5) * (180/Math.PI);
 
@@ -10633,13 +10624,13 @@ module.exports = Renderer;
 function Renderer(selector) {
 	svg = d3.select("body")
 	.append("svg")
-	.attr("width", 1000)
-	.attr("height", 900)
+	.attr("width", width)
+	.attr("height", height)
 	
 
 
 	mainGroup = svg.append("g")
-	.attr("transform", "translate(" + offsetX + "," + offsetY + ") rotate(" + rotate + ")");
+	.attr("transform", "translate(" + (width/2) + "," + (height/2) + ") rotate(" + rotate + ")");
 
 	mainGroup.append("circle")
 	.attr("class", 'claim-mark')
@@ -10679,13 +10670,13 @@ function handleMouseoutRegion(){
 
 function handleMouseMoveSVG(){
 	//if($(event.target).is('svg')){
-		var _x = event.clientX - offsetX;
-		var _y = event.clientY - offsetY;
+		// var _x = event.clientX - offsetX;
+		// var _y = event.clientY - offsetY;
 
-		var x = Math.round((((_x) / d2) - (_y / (d2/.5)))/scale);
-		var y = Math.round((_y/1.5)/scale);
+		// var x = Math.round((((_x) / d2) - (_y / (d2/.5)))/scale);
+		// var y = Math.round((_y/1.5)/scale);
 
-		$('body').trigger('STAGE_MOUSEMOVE', [x, y]);
+		$('body').trigger('STAGE_MOUSEMOVE', [0, 0]);
 	//}
 }
 
