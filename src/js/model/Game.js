@@ -29,6 +29,11 @@ function addTile(tile){
 	this.tiles.push(tile);
 }
 
+Game.prototype.addTiles = addTiles;
+function addTiles(tiles){
+	this.tiles = this.tiles.concat(tiles);
+}
+
 Game.prototype.getTile = getTile;
 function getTile(tileId){
 	return $.grep(this.tiles, function(tile, i){
@@ -50,12 +55,6 @@ function getRegions(useNubs){
 		var tile = this.tiles[i];
 
 		var tileRegions = tile.getRegions(useNubs)
-
-		$.each(tileRegions, function(i, region){
-			var regionSpace = Region.getRegionSpace(tile)
-			region.x = regionSpace.x + region.x
-			region.y = regionSpace.y + region.y
-		})
 
 		regions = regions.concat(tileRegions);
 	};
@@ -291,8 +290,6 @@ function getNubTiles(regions){
 
 		var point = Tile.getTileSpace(region);
 
-		console.log('point', point);
-		
 		var matches = $.grep(nubs, function(item){
 			return item.x === point.x && item.y === point.y && item.o === point.o
 		});
@@ -305,14 +302,12 @@ function getNubTiles(regions){
 
 	});
 
-	nubs = $.map(nubs, function(item){
+	return $.map(nubs, function(item){
 		var tile = new Tile(Region.XX, item.x, item.y, item.o ? Orientation.YP : Orientation.XP);
 		tile.isNub = true;
 
 		return tile;
 	});
-
-	return nubs;
 }
 
 
@@ -334,7 +329,7 @@ function getEnds(regions){
 
 	var ends = [];
 
-	var results = search(regions, function(region, vector, orientation){
+	var results = search(regions, function(region, vector, orientation, lastRegion){
 		if(region){
 			return true;
 		}else{
@@ -363,7 +358,7 @@ function getNubs(regions){
 
 	var nubs = [];
 
-	var results = search(regions, function(region, vector, orientation){
+	var results = search(regions, function(region, vector, orientation, lastRegion){
 		if(region){
 			return true;
 		}else{
@@ -372,13 +367,44 @@ function getNubs(regions){
 		}
 	}, regions[0]);
 
-	return [nubs[1]];
+	return nubs;
 }
 
+Game.prototype.getMisMatchedRegions = getMisMatchedRegions;
+function getMisMatchedRegions(regions, tile){
+	var tileRegions = tile.getRegions();
 
+	tileRegions = $.grep(tileRegions, function(region){
+		return region.traversable;
+	});
+
+	var nonTileRegions = $.grep(regions, function(region){
+		return region.traversable;
+	});
+
+	traversableRegions = nonTileRegions.concat(tileRegions);
+
+	var misMatchedRegions = [];
+
+	search(traversableRegions, function(region, vector, orientation, lastRegion){
+
+		var regionAtVector = getRegionAt(regions, vector);
+
+		var matches = $.grep(regions, function(nonTileRegion){
+			return nonTileRegion === regionAtVector;
+		});
+
+		if(!region && matches.length){
+			misMatchedRegions.push(new Region(vector.x, vector.y));
+		}
+
+	}, tileRegions[0]);
+
+	return misMatchedRegions;
+}
 
 Game.prototype.search = search;
-function search(regions, filter, region, vector, excludeOrientation, logged, unLogged){
+function search(regions, filter, region, vector, excludeOrientation, lastRegion, logged, unLogged){
 	var neighbors = [];
 
 	if(!logged){
@@ -413,16 +439,16 @@ function search(regions, filter, region, vector, excludeOrientation, logged, unL
 
 			var neighbor = getRegionAt(regions, vector)
 
-			neighbors = neighbors.concat(search(regions, filter, neighbor, vector, orientation, logged, unLogged));
+			neighbors = neighbors.concat(search(regions, filter, neighbor, vector, orientation, region, logged, unLogged));
 		};
 	}
 
-	if(filter(region, vector, excludeOrientation)){
+	if(filter(region, vector, excludeOrientation, lastRegion)){
 		neighbors.push(region);
 	}
 
 	if(!region && unLogged.length){
-		neighbors = neighbors.concat(search(regions, filter, unLogged[0], vector, orientation, logged, unLogged));
+		neighbors = neighbors.concat(search(regions, filter, unLogged[0], vector, orientation, region, logged, unLogged));
 	}
 
 	return neighbors;

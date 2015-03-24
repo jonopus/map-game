@@ -27,6 +27,11 @@ function get(){
 	return orientations;
 }
 
+Orientation.prototype.getAt = getAt;
+function getAt(delta){
+	return orientations[(orientations.length + this.index + delta)%orientations.length]
+}
+
 Orientation.getOpposite = getOpposite;
 function getOpposite(orientation){
 	switch(orientation){

@@ -5,96 +5,66 @@ var Player = require('../model/Player.js');
 
 var game;
 var renderer;
+var nextRegions = Region.O3;
+var nextOrientation = Orientation.XP;
+
 
 module.exports = Controller;
 function Controller(newGame, newRenderer) {
 	game = newGame;
 	renderer = newRenderer;
 
-	$('body').on('REGION_CLICKED', $.proxy(this.handleRegionClicked, this));
 	$('body').on('NUB_CLICKED', $.proxy(this.handleNubClicked, this));
+	$('body').on('NUB_MOUSEOVER', $.proxy(this.handleNubMouseover, this));
+	$('body').on('NUB_MOUSEOUT', $.proxy(this.handleNubMouseout, this));
+	$('body').on('REGION_CLICKED', $.proxy(this.handleRegionClicked, this));
+	$('body').on('TILE_TYPE_CLICKED', $.proxy(this.handleTileTypeClicked, this));
+	$('body').on('ROTATE_CLICKED', $.proxy(this.handleRotateClicked, this));
 	$('body').on('REGION_MOUSEOVER', $.proxy(this.handleRegionMouseover, this));
 	$('body').on('REGION_MOUSEOUT', $.proxy(this.handleRegionMouseout, this));
-	$('body').on('STAGE_MOUSEMOVE', $.proxy(this.handleStageMouseMove, this));
-
-	/* // All Tiles
-	game.addTile(new Tile(Region.O3, -4, -3));
-	game.addTile(new Tile(Region.O2, 0, -3));
-	game.addTile(new Tile(Region.O1, 4, -3));
-	
-	game.addTile(new Tile(Region.C3, -6, 1));
-	game.addTile(new Tile(Region.C2, -2, 1));
-	game.addTile(new Tile(Region.C1, 2, 1));
-	*/
-
-	//starting set
-	
-	game.addTile(new Tile(Region.O3, -1, -1, Orientation.YP));
-	game.addTile(new Tile(Region.O3, -1, 0));
-	game.addTile(new Tile(Region.O3, -1, 0, Orientation.YP));
-	game.addTile(new Tile(Region.O3, 0, -1));
-	game.addTile(new Tile(Region.O3, 0, -1, Orientation.YP));
-	game.addTile(new Tile(Region.O3, 0, 0));
-	
-	game.addTile(new Tile(Region.O2, 0, 0, Orientation.YP));
-	game.addTile(new Tile(Region.O1, 1, 0));
-	
-	game.addTile(new Tile(Region.C2, 1, 1, Orientation.ZP));
-	game.addTile(new Tile(Region.C3, 1, 0, Orientation.YP));
-	game.addTile(new Tile(Region.C1, 0, 1, Orientation.YP));
-	
-
-	game.addTile(new Tile(Region.O3, 0, -2, Orientation.YP));
-	game.addTile(new Tile(Region.O3, 0, -2));
 
 
 	game.addPlayer(new Player('Red', 'red'));
 	game.addPlayer(new Player('Blue', 'blue'));
 	game.nextPlayer()
-
+	
+	game.addTiles(Tile.getStartTiles());
+	renderer.renderTileTypes(Tile.getTiles())
 	render(game.getRegions())
 }
 
 function render(regions) {
-	var tiles = game.getTiles();
-	
-	
-	//* // Test
-	var nub = new Region(0,1);
-	var test = [nub]
-	var nubTiles = game.getNubTiles(test);
-
-	regions = regions.concat(test);
-	tiles = tiles.concat(nubTiles)
-	//*/
-
-
-	/* // Default
 	var nubs = game.getNubs(regions);
 	var nubTiles = game.getNubTiles(nubs);
+	var tiles = game.getTiles().concat(nubTiles);
 
-	var tiles = game.getTiles();
-	renderer.renderTiles(tiles.concat(nubTiles));
-	renderer.renderRegions(regions.concat(nubs));
-	renderer.highlight('capture', nubs);
-	//*/
-	
-	
-	//var point = Tile.getTileSpace(region);
-
-	/* //Show Ends
-	var tiles = game.getTiles();
-	var ends = game.getEnds(regions);
+	renderer.renderTilePreview(getNextTile(0, 0,  Orientation.XP));
 	renderer.renderTiles(tiles);
 	renderer.renderRegions(regions);
-	renderer.highlight('capture', ends);
-	//*/
+}
 
+function getNextTile(x, y, orientation) {
+	return new Tile(nextRegions, x, y, orientation)
+}
+
+Controller.prototype.handleRegionClicked = handleRegionClicked;
+function handleRegionClicked(event, tileId, regionId) {
+	var regions = game.getRegions();
+
+	var player = game.currentPlayer;
+	var region = game.getRegion(regions, tileId, regionId);
+	var liberties = game.getLiberties(regions, player, region);
+	var liberties = game.getLiberties(regions, player, region);
+	var captures = game.getCaptures(regions, player, region);
+
+	if(!region.claimed && (liberties.length || captures.length)){
+		var claim = player.claim(tileId, regionId);
+		game.removeClaims(captures);
+		game.applyClaims(regions, [claim]);
+		game.nextPlayer()
+	}
 	
-	renderer.renderTiles(tiles);
-	renderer.renderRegions(regions);
-
-	renderer.highlight('liberty', test);
+	render(regions)
 }
 
 Controller.prototype.handleRegionMouseover = handleRegionMouseover;
@@ -137,48 +107,41 @@ function handleRegionMouseout(event, tileId, regionId) {
 
 Controller.prototype.handleNubClicked = handleNubClicked;
 function handleNubClicked(event, x, y, o) {
-	game.addTile(new Tile(Region.O3, x, y, o ? Orientation.YP : Orientation.XP));
+	var regions = game.getRegions()
 
-	render(game.getRegions())
-}
+	var tile = getNextTile(x, y, o ? Orientation.YP : Orientation.XP);
 
-Controller.prototype.handleRegionClicked = handleRegionClicked;
-function handleRegionClicked(event, tileId, regionId) {
-	var regions = game.getRegions();
-
-	var player = game.currentPlayer;
-	var region = game.getRegion(regions, tileId, regionId);
-	var liberties = game.getLiberties(regions, player, region);
-	var liberties = game.getLiberties(regions, player, region);
-	var captures = game.getCaptures(regions, player, region);
-
-	if(!region.claimed && (liberties.length || captures.length)){
-		var claim = player.claim(tileId, regionId);
-		game.removeClaims(captures);
-		game.applyClaims(regions, [claim]);
-		game.nextPlayer()
+	var misMatchedRegions = game.getMisMatchedRegions(regions, tile)
+	
+	if(!misMatchedRegions.length){
+		game.addTile(tile);
 	}
-	
-	render(regions)
+
+	render(game.getRegions().concat(misMatchedRegions))
+	renderer.highlight('illegal', misMatchedRegions);
 }
 
-var d2 = Math.sqrt(3);
+Controller.prototype.handleNubMouseover = handleNubMouseover;
+function handleNubMouseover(event, x, y, o) {
+	console.log('handleNubMouseover', x, y, o);
+}
 
-Controller.prototype.handleStageMouseMove = handleStageMouseMove;
-function handleStageMouseMove(event, x, y) {
+Controller.prototype.handleNubMouseout = handleNubMouseout;
+function handleNubMouseout(event, x, y, o) {
+	console.log('handleNubMouseout', x, y, o);
+}
 
+Controller.prototype.handleRotateClicked = handleRotateClicked;
+function handleRotateClicked(event, clockwise) {
+	nextOrientation = nextOrientation.getAt(clockwise ? -1 : 1)
+	renderer.renderTilePreview(getNextTile(0, 0, nextOrientation))
+}
 
-	
-	/*
-	var _x = Math.round(x/4);
-	var _y = Math.round(y/3);
+Controller.prototype.handleTileTypeClicked = handleTileTypeClicked;
+function handleTileTypeClicked(event, tileTypeClicked) {
+	nextRegions = Region[tileTypeClicked]
 
-	x = _x;
-	y = _y;
+	console.log('nextRegions', tileTypeClicked, nextRegions);
 
-	var regions = game.getRegions();
-
-	regions = regions.concat(new Tile(Region.O3, x, y).getRegions());
-	renderer.render(regions);
-	*/
+	renderer.renderTilePreview(getNextTile(0, 0, nextOrientation))
 }

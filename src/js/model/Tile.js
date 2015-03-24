@@ -5,11 +5,12 @@ var tileCount = 0;
 var claimedRegions = [];
 
 module.exports = Tile;
-function Tile(regions, x, y, orientation) {
+function Tile(regions, x, y, orientation, title) {
 
 	this.x = x || 0;
 	this.y = y || 0;
 
+	this.title = title || '';
 	this.id = tileCount++;
 	this.orientation = orientation || Orientation.XP;
 	
@@ -33,6 +34,12 @@ function getRegions(useNubs){
 		return region;
 	})
 
+	$.each(regions, function(i, region){
+		var regionSpace = Region.getRegionSpace(tile)
+		region.x = regionSpace.x + region.x
+		region.y = regionSpace.y + region.y
+	})
+
 	return regions;
 }
 
@@ -43,30 +50,94 @@ function getRegion(regionId){
 	})[0];
 }
 
+var d2 = Math.sqrt(3);
+var a = d2*3.5
+var o = 1.5
+var h = Math.sqrt((a*a) + (o*o));
+var rotate = 90 + Math.atan(a/-o) * (180/Math.PI);
+var scale = h/(d2*4)
+var w = 4
+var h = 3 // triangle size
+
+Tile.START_TILES = [
+	new Tile(Region.O3, -1, -1, Orientation.YP),
+	new Tile(Region.O3, -1, 0),
+	new Tile(Region.O3, -1, 0, Orientation.YP),
+	new Tile(Region.O3, 0, -1),
+	new Tile(Region.O3, 0, -1, Orientation.YP),
+	new Tile(Region.O3, 0, 0)
+]
+Tile.getStartTiles = function(){
+	return Tile.START_TILES;
+}
+Tile.TILES = [
+	new Tile(Region.O3, null, null, null, 'O3'),
+	new Tile(Region.O2, null, null, null, 'O2'),
+	new Tile(Region.O1, null, null, null, 'O1'),
+	new Tile(Region.C3, null, null, null, 'C3'),
+	new Tile(Region.C2, null, null, null, 'C2'),
+	new Tile(Region.C1, null, null, null, 'C1')
+]
+Tile.getTiles = function(){
+	return Tile.TILES;
+}
 Tile.getTileSpace = function(region){
+	var x = region.x;
+	var y = region.y;
 
-	var x
-	var y
-	var offsetX
-	var offsetY
-	var localX
-	var localY
-	var o
+	var _x;
+	var _y;
 
-	offsetX = Math.floor(region.x/4)
-	offsetY = Math.floor(region.y/3)
+	_x = Math.floor(
+		(x-1)	/w
+	)
+	_y = Math.floor(
+		(
+			y+_x
+		)	/h
+	)
+	_x = Math.floor(
+		(
+			x-1-_y
+		)	/w
+	)
+	_y = Math.floor(
+		(
+			y+_x
+		)	/h
+	)
+	_x = Math.floor(
+		(
+			x-1-_y
+		)	/w
+	)
+	_y = Math.floor(
+		(
+			y+_x
+		)	/h
+	)
 
-	x = Math.floor((region.x - offsetY)/4)
-	y = Math.floor((region.y + offsetX)/3)
+	var offsetX = ((_x)*4)+_y;
+	var offsetY = ((_y)*3)-_x;
 
-	localX = region.x - ((x*4) + y);
-	localY = region.y - ((y*3) - x);
+	var o = x-offsetX-1 + y-offsetY > 2;
 
-	o = localX + localY > 3;
+	/*
+	region.omit = (
+		(_x === 2 && _y === 3)
+	)
 
+
+	if(region.omit){
+		console.log(
+			x-offsetX-1 + y-offsetY
+		);
+	}
+	*/
+	
 	return {
-		x:x,
-		y:y,
+		x:_x,
+		y:_y,
 		o:o
 	}
 }
