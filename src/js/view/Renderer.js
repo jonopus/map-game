@@ -16,7 +16,6 @@ var height = $(window).height();
 
 var d2 = Math.sqrt(3);
 var centerH = 1/d2
-console.log(centerH);
 
 var rotate = 90 + Math.atan((d2*3.5)/-1.5) * (180/Math.PI);
 
@@ -130,6 +129,7 @@ function handleMouseoverNub(){
 }
 
 function handleMouseoutNub(){
+	console.log('handleMouseoutNub')
 	var region = d3.select(this);
 	$('body').trigger('NUB_MOUSEOUT', [parseInt(region.attr("data-x")), parseInt(region.attr("data-y")), parseInt(region.attr("data-o"))])
 }
@@ -193,8 +193,6 @@ function renderTiles(tiles, group){
 }
 
 function renderTile(tile, index, group){
-	console.log('renderTile', group);
-
 	var regionSpace = Region.getRegionSpace(tile)
 
 	var x = (((regionSpace.x) * d2) + (regionSpace.y * (d2*.5)));
