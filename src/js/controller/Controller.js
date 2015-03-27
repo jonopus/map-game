@@ -29,23 +29,27 @@ function Controller(newGame, newRenderer) {
 	game.nextPlayer()
 	
 	game.addTiles(Tile.getStartTiles());
+	game.addTile(new Tile(Region.O2, 0, 0, Orientation.YP));
 	renderer.renderTileTypes(Tile.getTiles())
 	render(game.getRegions(), game.getTiles())
+	renderNubs();
+}
+
+function renderNubs() {
+	var nubs = game.getNubs(game.getRegions());
+	var nubTiles = game.getNubTiles(nubs);
+	renderer.renderNubTiles(nubTiles);
 }
 
 function render(regions, tiles, nextTile) {
-	var nubs = game.getNubs(regions);
-	var nubTiles = game.getNubTiles(nubs);
-	var tiles = tiles.concat(nubTiles);
 
 	if(nextTile){
 
-		console.log('nextTile')
 		regions = regions.concat(nextTile.getRegions())
 		tiles = tiles.concat(nextTile)
 	}
 
-	renderer.renderTilePreview(getNextTile(0, 0,  Orientation.XP));
+	renderer.renderTilePreview(getNextTile(0, 0, nextOrientation));
 	renderer.renderTiles(tiles);
 	renderer.renderRegions(regions);
 }
@@ -80,7 +84,7 @@ function handleRegionMouseover(event, tileId, regionId) {
 
 	var region = game.getRegion(regions, tileId, regionId);
 
-	if(!region.claimable) return;
+	if(!region || !region.claimable) return;
 
 	var player = game.currentPlayer;
 	var liberties = game.getLiberties(regions, player, region);
@@ -104,6 +108,8 @@ function handleRegionMouseover(event, tileId, regionId) {
 
 Controller.prototype.handleRegionMouseout = handleRegionMouseout;
 function handleRegionMouseout(event, tileId, regionId) {
+	console.log('handleRegionMouseout');
+
 	renderer.highlight('capture', []);
 	renderer.highlight('liberty', []);
 	renderer.highlight('illegal', []);
@@ -116,36 +122,37 @@ Controller.prototype.handleNubClicked = handleNubClicked;
 function handleNubClicked(event, x, y, o) {
 	var regions = game.getRegions()
 
-	var tile = getNextTile(x, y, o ? Orientation.YP : Orientation.XP);
-
+	var tile = getNextTile(x, y, nextOrientation);
 	var misMatchedRegions = game.getMisMatchedRegions(regions, tile)
-	
+
+	console.log('misMatchedRegions.length', misMatchedRegions.length);
+
 	if(!misMatchedRegions.length){
 		game.addTile(tile);
 	}
-
+	
+	renderNubs()
+	
 	render(
 		game.getRegions().concat(misMatchedRegions),
 		game.getTiles()
 	)
+
+
 	renderer.highlight('illegal', misMatchedRegions);
 }
 
 Controller.prototype.handleNubMouseover = handleNubMouseover;
 function handleNubMouseover(event, x, y, o) {
-	console.log('handleNubMouseover', x, y, o);
-
 	render(
 		game.getRegions(),
 		game.getTiles(),
-		getNextTile(x, y, o ? Orientation.YP : Orientation.XP)
+		getNextTile(x, y, nextOrientation)
 	)
 }
 
 Controller.prototype.handleNubMouseout = handleNubMouseout;
 function handleNubMouseout(event, x, y, o) {
-	console.log('handleNubMouseout', x, y, o);
-
 	render(
 		game.getRegions(),
 		game.getTiles()
@@ -161,8 +168,6 @@ function handleRotateClicked(event, clockwise) {
 Controller.prototype.handleTileTypeClicked = handleTileTypeClicked;
 function handleTileTypeClicked(event, tileTypeClicked) {
 	nextRegions = Region[tileTypeClicked]
-
-	console.log('nextRegions', tileTypeClicked, nextRegions);
 
 	renderer.renderTilePreview(getNextTile(0, 0, nextOrientation))
 }

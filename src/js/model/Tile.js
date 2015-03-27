@@ -11,7 +11,7 @@ function Tile(regions, x, y, orientation, title) {
 	this.y = y || 0;
 
 	this.title = title || '';
-	this.id = tileCount++;
+	this.id = ++tileCount;
 	this.orientation = orientation || Orientation.XP;
 	
 	this.regions = regions;
@@ -121,19 +121,6 @@ Tile.getTileSpace = function(region){
 	var offsetY = ((_y)*3)-_x;
 
 	var o = x-offsetX-1 + y-offsetY > 2;
-
-	/*
-	region.omit = (
-		(_x === 2 && _y === 3)
-	)
-
-
-	if(region.omit){
-		console.log(
-			x-offsetX-1 + y-offsetY
-		);
-	}
-	*/
 	
 	return {
 		x:_x,

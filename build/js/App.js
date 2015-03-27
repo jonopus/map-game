@@ -9550,23 +9550,27 @@ function Controller(newGame, newRenderer) {
 	game.nextPlayer()
 	
 	game.addTiles(Tile.getStartTiles());
+	game.addTile(new Tile(Region.O2, 0, 0, Orientation.YP));
 	renderer.renderTileTypes(Tile.getTiles())
 	render(game.getRegions(), game.getTiles())
+	renderNubs();
+}
+
+function renderNubs() {
+	var nubs = game.getNubs(game.getRegions());
+	var nubTiles = game.getNubTiles(nubs);
+	renderer.renderNubTiles(nubTiles);
 }
 
 function render(regions, tiles, nextTile) {
-	var nubs = game.getNubs(regions);
-	var nubTiles = game.getNubTiles(nubs);
-	var tiles = tiles.concat(nubTiles);
 
 	if(nextTile){
 
-		console.log('nextTile')
 		regions = regions.concat(nextTile.getRegions())
 		tiles = tiles.concat(nextTile)
 	}
 
-	renderer.renderTilePreview(getNextTile(0, 0,  Orientation.XP));
+	renderer.renderTilePreview(getNextTile(0, 0, nextOrientation));
 	renderer.renderTiles(tiles);
 	renderer.renderRegions(regions);
 }
@@ -9601,7 +9605,7 @@ function handleRegionMouseover(event, tileId, regionId) {
 
 	var region = game.getRegion(regions, tileId, regionId);
 
-	if(!region.claimable) return;
+	if(!region || !region.claimable) return;
 
 	var player = game.currentPlayer;
 	var liberties = game.getLiberties(regions, player, region);
@@ -9625,6 +9629,8 @@ function handleRegionMouseover(event, tileId, regionId) {
 
 Controller.prototype.handleRegionMouseout = handleRegionMouseout;
 function handleRegionMouseout(event, tileId, regionId) {
+	console.log('handleRegionMouseout');
+
 	renderer.highlight('capture', []);
 	renderer.highlight('liberty', []);
 	renderer.highlight('illegal', []);
@@ -9637,36 +9643,37 @@ Controller.prototype.handleNubClicked = handleNubClicked;
 function handleNubClicked(event, x, y, o) {
 	var regions = game.getRegions()
 
-	var tile = getNextTile(x, y, o ? Orientation.YP : Orientation.XP);
-
+	var tile = getNextTile(x, y, nextOrientation);
 	var misMatchedRegions = game.getMisMatchedRegions(regions, tile)
-	
+
+	console.log('misMatchedRegions.length', misMatchedRegions.length);
+
 	if(!misMatchedRegions.length){
 		game.addTile(tile);
 	}
-
+	
+	renderNubs()
+	
 	render(
 		game.getRegions().concat(misMatchedRegions),
 		game.getTiles()
 	)
+
+
 	renderer.highlight('illegal', misMatchedRegions);
 }
 
 Controller.prototype.handleNubMouseover = handleNubMouseover;
 function handleNubMouseover(event, x, y, o) {
-	console.log('handleNubMouseover', x, y, o);
-
 	render(
 		game.getRegions(),
 		game.getTiles(),
-		getNextTile(x, y, o ? Orientation.YP : Orientation.XP)
+		getNextTile(x, y, nextOrientation)
 	)
 }
 
 Controller.prototype.handleNubMouseout = handleNubMouseout;
 function handleNubMouseout(event, x, y, o) {
-	console.log('handleNubMouseout', x, y, o);
-
 	render(
 		game.getRegions(),
 		game.getTiles()
@@ -9682,8 +9689,6 @@ function handleRotateClicked(event, clockwise) {
 Controller.prototype.handleTileTypeClicked = handleTileTypeClicked;
 function handleTileTypeClicked(event, tileTypeClicked) {
 	nextRegions = Region[tileTypeClicked]
-
-	console.log('nextRegions', tileTypeClicked, nextRegions);
 
 	renderer.renderTilePreview(getNextTile(0, 0, nextOrientation))
 }
@@ -10019,13 +10024,13 @@ function getEnds(regions){
 
 	var ends = [];
 
-	var results = search(regions, function(region, vector, orientation, lastRegion){
+	search(regions, function(region, vector, lastRegion){
 		if(region){
 			return true;
 		}else{
 			var endVector = {
-				x:vector.x - orientation.vector.x,
-				y:vector.y - orientation.vector.y
+				x:vector.x - vector.o.vector.x,
+				y:vector.y - vector.o.vector.y
 			}
 
 			var end = getRegionAt(regions, endVector);
@@ -10033,11 +10038,85 @@ function getEnds(regions){
 			ends.push(end);
 			return false;
 		}
-	}, regions[0]);
+	}, traverse, regions[0]);
 
 	return ends;
 }
 
+function traverse(regions, region, vector, lastRegion, callback) {
+	var orientations = region.getOrientations(0);
+
+	for (var i = orientations.length - 1; i >= 0; i--) {
+
+		var orientation = orientations[i];
+
+		if(vector && vector.o === Orientation.getOpposite(orientation)){
+			continue;
+		}
+
+		var newVector = {
+			x:region.x + orientation.vector.x,
+			y:region.y + orientation.vector.y,
+			o: orientation
+		};
+
+		var neighbor = getRegionAt(regions, newVector)
+
+		callback(neighbor, newVector);
+	};
+}
+
+Game.prototype.getMisMatchedRegions = getMisMatchedRegions;
+function getMisMatchedRegions(gameRegions, tile){
+
+	var tileRegions = tile.getRegions();
+
+	tileRegions = $.grep(tileRegions, function(region){
+		return region.traversable;
+	});
+
+	var nonTileRegions = $.grep(gameRegions, function(region){
+		return region.traversable;
+	});
+
+	traversableRegions = nonTileRegions.concat(tileRegions);
+
+	var misMatchedRegions = [];
+
+
+	function traverse(regions, region, vector, lastRegion, callback) {
+
+		if(!region) return;
+		
+		var orientations = region.getOrientations(0);
+
+		for (var i = orientations.length - 1; i >= 0; i--) {
+
+			var orientation = orientations[i];
+			
+			var newVector = {
+				x:region.x + orientation.vector.x,
+				y:region.y + orientation.vector.y,
+				o: orientation
+			};
+
+			var neighbor = getRegionAt(regions, newVector)
+
+			if(neighbor && neighbor.getOrientations(0).indexOf(Orientation.getOpposite(orientation)) < 0){
+				
+				misMatchedRegions.push(region)
+
+				continue;
+			}
+
+			callback(neighbor, newVector);
+		};
+	}
+
+	search(traversableRegions, null, traverse, tileRegions[0]);
+
+	return misMatchedRegions;
+}
 
 Game.prototype.getNubs = getNubs;
 function getNubs(regions){
@@ -10048,60 +10127,54 @@ function getNubs(regions){
 
 	var nubs = [];
 
-	var results = search(regions, function(region, vector, orientation, lastRegion){
+	function filter(region, vector, lastRegion){
+		if(window.depth++ > window.max) return false;
+		
 		if(region){
 			return true;
 		}else{
 			nubs.push(new Region(vector.x, vector.y));
 			return false;
 		}
-	}, regions[0]);
+	}
+
+	search(regions, filter, traverse, regions[0]);
 
 	return nubs;
 }
 
-Game.prototype.getMisMatchedRegions = getMisMatchedRegions;
-function getMisMatchedRegions(regions, tile){
-	var tileRegions = tile.getRegions();
+function traverse(regions, region, vector, lastRegion, callback) {
 
-	tileRegions = $.grep(tileRegions, function(region){
-		return region.traversable;
-	});
+	if(!region) return;
+	
+	var orientations = region.getOrientations(0);
 
-	var nonTileRegions = $.grep(regions, function(region){
-		return region.traversable;
-	});
+	for (var i = orientations.length - 1; i >= 0; i--) {
 
-	traversableRegions = nonTileRegions.concat(tileRegions);
+		var orientation = orientations[i];
+		
+		var newVector = {
+			x:region.x + orientation.vector.x,
+			y:region.y + orientation.vector.y,
+			o: orientation
+		};
 
-	var misMatchedRegions = [];
+		var neighbor = getRegionAt(regions, newVector)
 
-	search(traversableRegions, function(region, vector, orientation, lastRegion){
-
-		var regionAtVector = getRegionAt(regions, vector);
-
-		var matches = $.grep(regions, function(nonTileRegion){
-			return nonTileRegion === regionAtVector;
-		});
-
-		if(!region && matches.length){
-			misMatchedRegions.push(new Region(vector.x, vector.y));
+		if(neighbor && neighbor.getOrientations(0).indexOf(Orientation.getOpposite(orientation)) < 0){
+			continue;
 		}
 
-	}, tileRegions[0]);
-
-	return misMatchedRegions;
+		callback(neighbor, newVector);
+	};
 }
 
 Game.prototype.search = search;
-function search(regions, filter, region, vector, excludeOrientation, lastRegion, logged, unLogged){
+function search(regions, filter, traverse, region, vector, lastRegion, logged, unLogged){
 	var neighbors = [];
 
 	if(!logged){
 		logged = [];
-	}
-
-	if(!unLogged){
 		unLogged = regions.slice();
 	}
 
@@ -10109,36 +10182,27 @@ function search(regions, filter, region, vector, excludeOrientation, lastRegion,
 		return neighbors;
 	}
 
-	region && logged.push(unLogged.splice(unLogged.indexOf(region), 1)[0]);
-
-	if(region){
-		var orientations = region.getOrientations(0);
-
-		for (var i = orientations.length - 1; i >= 0; i--) {
-
-			var orientation = orientations[i];
-
-			if(Orientation.getOpposite(orientation) === excludeOrientation){
-				continue;
-			}
-
-			var vector = {
-				x:region.x + orientation.vector.x,
-				y:region.y + orientation.vector.y
-			};
-
-			var neighbor = getRegionAt(regions, vector)
-
-			neighbors = neighbors.concat(search(regions, filter, neighbor, vector, orientation, region, logged, unLogged));
-		};
+	var index = unLogged.indexOf(region)	
+	if(index >= 0){
+		logged.push(unLogged.splice(index, 1)[0]);
 	}
 
-	if(filter(region, vector, excludeOrientation, lastRegion)){
+	if(filter && filter(region, vector, lastRegion)){
 		neighbors.push(region);
 	}
+	
+	traverse(
+		regions,
+		region,
+		vector,
+		lastRegion,
+		function(neighbor, newVector){
+			neighbors = neighbors.concat(search(regions, filter, traverse, neighbor, newVector, region, logged, unLogged));
+		}
+	)
 
-	if(!region && unLogged.length){
-		neighbors = neighbors.concat(search(regions, filter, unLogged[0], vector, orientation, region, logged, unLogged));
+	while(!lastRegion && logged.length < regions.length){
+		neighbors = neighbors.concat(search(regions, filter, traverse, unLogged[0], vector, region, logged, unLogged));
 	}
 
 	return neighbors;
@@ -10397,7 +10461,7 @@ function Tile(regions, x, y, orientation, title) {
 	this.y = y || 0;
 
 	this.title = title || '';
-	this.id = tileCount++;
+	this.id = ++tileCount;
 	this.orientation = orientation || Orientation.XP;
 	
 	this.regions = regions;
@@ -10507,19 +10571,6 @@ Tile.getTileSpace = function(region){
 	var offsetY = ((_y)*3)-_x;
 
 	var o = x-offsetX-1 + y-offsetY > 2;
-
-	/*
-	region.omit = (
-		(_x === 2 && _y === 3)
-	)
-
-
-	if(region.omit){
-		console.log(
-			x-offsetX-1 + y-offsetY
-		);
-	}
-	*/
 	
 	return {
 		x:_x,
@@ -10536,13 +10587,14 @@ var svg;
 var mainGroup;
 var regionsGroup;
 var tilesGroup;
+var nubTilesGroup;
 var previewGroup;
 var tilePreviewGroup;
 var regionPreviewGroup;
 var tileTypesGroup;
 var scale = 20;
-var width = $(window).width();
-var height = $(window).height();
+var width = $(window).innerWidth();
+var height = $(window).innerHeight();
 
 var d2 = Math.sqrt(3);
 var centerH = 1/d2
@@ -10580,16 +10632,13 @@ module.exports = Renderer;
 function Renderer(selector) {
 	svg = d3.select("body")
 	.classed("svg-container", true) //container class to make it responsive
-	.append("svg")
-	.attr("viewBox", "0 0 " + width + " " + height)
+	.append("svg");
 	
-
-
 	mainGroup = svg.append("g")
 	.attr("id", 'main-group')
-	.attr("transform", "translate(" + (width/2) + "," + (height/2) + ") rotate(" + rotate + ")");
 	tilesGroup = mainGroup.append("g")
 	regionsGroup = mainGroup.append("g")
+	nubTilesGroup = mainGroup.append("g")
 	
 	previewGroup = svg.append("g")
 	.attr("id", 'preview-group')
@@ -10630,6 +10679,23 @@ function Renderer(selector) {
 
 	$('svg').on('click', '.tile-type', handleClickTileType);
 	$('svg').on('click', '.rotate', handleClickRotate);
+	
+	$(window).on('resize', handleResize);
+	center();
+}
+
+function center(){
+	width = $(window).innerWidth();
+	height = $(window).innerHeight();
+	mainGroup.attr("transform", "translate(" + (width/2) + "," + (height/2) + ") rotate(" + rotate + ")");
+	$('svg').css({
+		width: width,
+		height: height
+	});
+}
+
+function handleResize(){
+	center()
 }
 
 function handleClickRegion(){
@@ -10659,7 +10725,6 @@ function handleMouseoverNub(){
 }
 
 function handleMouseoutNub(){
-	console.log('handleMouseoutNub')
 	var region = d3.select(this);
 	$('body').trigger('NUB_MOUSEOUT', [parseInt(region.attr("data-x")), parseInt(region.attr("data-y")), parseInt(region.attr("data-o"))])
 }
@@ -10709,6 +10774,15 @@ function renderRegions(regions, group){
 
 	for (var i = regions.length - 1; i >= 0; i--) {
 		renderRegion(regions[i], i, group);
+	};
+}
+
+Renderer.prototype.renderNubTiles = renderNubTiles;
+function renderNubTiles(tiles, group){
+	nubTilesGroup.selectAll("*").remove();
+
+	for (var i = tiles.length - 1; i >= 0; i--) {
+		renderTile(tiles[i], i, nubTilesGroup);
 	};
 }
 
@@ -10798,8 +10872,17 @@ function renderRegion(region, index, group){
 			])
 		}
 	};
+	
+	var groupSelector = region.tileId >= 0 ? 'tile-group-' + region.tileId : 'region-group'
+	var tileGroup = group.selectAll('#'+groupSelector)
 
-	var regionGroup = group.append("g")
+
+	if(!tileGroup.size()){
+		tileGroup = group.append("g")
+		.attr("id", groupSelector)
+	}
+
+	var regionGroup = tileGroup.append("g")
 	.attr("id", 'region-' + region.tileId + '-' + region.id)
 	.attr("transform", "translate("+(x*scale)+","+(y*scale)+")")
 	.attr("class", 
@@ -10862,7 +10945,6 @@ function renderRegion(region, index, group){
 
 Renderer.prototype.highlight = highlight;
 function highlight(className, regions){
-	
 	$('.'+className)
 	.attr("class", function(index, classNames) {
 		return classNames.replace(className, '');

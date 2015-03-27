@@ -6,13 +6,14 @@ var svg;
 var mainGroup;
 var regionsGroup;
 var tilesGroup;
+var nubTilesGroup;
 var previewGroup;
 var tilePreviewGroup;
 var regionPreviewGroup;
 var tileTypesGroup;
 var scale = 20;
-var width = $(window).width();
-var height = $(window).height();
+var width = $(window).innerWidth();
+var height = $(window).innerHeight();
 
 var d2 = Math.sqrt(3);
 var centerH = 1/d2
@@ -50,16 +51,13 @@ module.exports = Renderer;
 function Renderer(selector) {
 	svg = d3.select("body")
 	.classed("svg-container", true) //container class to make it responsive
-	.append("svg")
-	.attr("viewBox", "0 0 " + width + " " + height)
+	.append("svg");
 	
-
-
 	mainGroup = svg.append("g")
 	.attr("id", 'main-group')
-	.attr("transform", "translate(" + (width/2) + "," + (height/2) + ") rotate(" + rotate + ")");
 	tilesGroup = mainGroup.append("g")
 	regionsGroup = mainGroup.append("g")
+	nubTilesGroup = mainGroup.append("g")
 	
 	previewGroup = svg.append("g")
 	.attr("id", 'preview-group')
@@ -100,6 +98,23 @@ function Renderer(selector) {
 
 	$('svg').on('click', '.tile-type', handleClickTileType);
 	$('svg').on('click', '.rotate', handleClickRotate);
+	
+	$(window).on('resize', handleResize);
+	center();
+}
+
+function center(){
+	width = $(window).innerWidth();
+	height = $(window).innerHeight();
+	mainGroup.attr("transform", "translate(" + (width/2) + "," + (height/2) + ") rotate(" + rotate + ")");
+	$('svg').css({
+		width: width,
+		height: height
+	});
+}
+
+function handleResize(){
+	center()
 }
 
 function handleClickRegion(){
@@ -129,7 +144,6 @@ function handleMouseoverNub(){
 }
 
 function handleMouseoutNub(){
-	console.log('handleMouseoutNub')
 	var region = d3.select(this);
 	$('body').trigger('NUB_MOUSEOUT', [parseInt(region.attr("data-x")), parseInt(region.attr("data-y")), parseInt(region.attr("data-o"))])
 }
@@ -179,6 +193,15 @@ function renderRegions(regions, group){
 
 	for (var i = regions.length - 1; i >= 0; i--) {
 		renderRegion(regions[i], i, group);
+	};
+}
+
+Renderer.prototype.renderNubTiles = renderNubTiles;
+function renderNubTiles(tiles, group){
+	nubTilesGroup.selectAll("*").remove();
+
+	for (var i = tiles.length - 1; i >= 0; i--) {
+		renderTile(tiles[i], i, nubTilesGroup);
 	};
 }
 
@@ -268,8 +291,17 @@ function renderRegion(region, index, group){
 			])
 		}
 	};
+	
+	var groupSelector = region.tileId >= 0 ? 'tile-group-' + region.tileId : 'region-group'
+	var tileGroup = group.selectAll('#'+groupSelector)
 
-	var regionGroup = group.append("g")
+
+	if(!tileGroup.size()){
+		tileGroup = group.append("g")
+		.attr("id", groupSelector)
+	}
+
+	var regionGroup = tileGroup.append("g")
 	.attr("id", 'region-' + region.tileId + '-' + region.id)
 	.attr("transform", "translate("+(x*scale)+","+(y*scale)+")")
 	.attr("class", 
@@ -332,7 +364,6 @@ function renderRegion(region, index, group){
 
 Renderer.prototype.highlight = highlight;
 function highlight(className, regions){
-	
 	$('.'+className)
 	.attr("class", function(index, classNames) {
 		return classNames.replace(className, '');

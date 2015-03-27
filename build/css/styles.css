@@ -181,8 +181,11 @@ th {
   padding: 0;
 }
 
-.svg-container {
+svg {
   width: 100%;
+  padding-bottom: 100%;
+}
+.svg-container {
   overflow: hidden;
 }
 .tile-type {
