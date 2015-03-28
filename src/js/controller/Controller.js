@@ -29,7 +29,6 @@ function Controller(newGame, newRenderer) {
 	game.nextPlayer()
 	
 	game.addTiles(Tile.getStartTiles());
-	game.addTile(new Tile(Region.O2, 0, 0, Orientation.YP));
 	renderer.renderTileTypes(Tile.getTiles())
 	render(game.getRegions(), game.getTiles())
 	renderNubs();
@@ -49,7 +48,7 @@ function render(regions, tiles, nextTile) {
 		tiles = tiles.concat(nextTile)
 	}
 
-	renderer.renderTilePreview(getNextTile(0, 0, nextOrientation));
+	renderer.setTilePreview(getNextTile(0, 0, nextOrientation));
 	renderer.renderTiles(tiles);
 	renderer.renderRegions(regions);
 }
@@ -108,8 +107,6 @@ function handleRegionMouseover(event, tileId, regionId) {
 
 Controller.prototype.handleRegionMouseout = handleRegionMouseout;
 function handleRegionMouseout(event, tileId, regionId) {
-	console.log('handleRegionMouseout');
-
 	renderer.highlight('capture', []);
 	renderer.highlight('liberty', []);
 	renderer.highlight('illegal', []);
@@ -120,30 +117,43 @@ function handleRegionMouseout(event, tileId, regionId) {
 
 Controller.prototype.handleNubClicked = handleNubClicked;
 function handleNubClicked(event, x, y, o) {
-	var regions = game.getRegions()
+	var regions = game.getRegions();
 
 	var tile = getNextTile(x, y, nextOrientation);
-	var misMatchedRegions = game.getMisMatchedRegions(regions, tile)
+	var tileRegions = $.grep(tile.getRegions(), function(region){
+		return region.traversable;
+	});
+	var misMatched = game.getMisMatched(regions, tileRegions)
 
-	console.log('misMatchedRegions.length', misMatchedRegions.length);
+	if(misMatched.length){
+		nextOrientation = nextOrientation.getAt(2);
+		tile = getNextTile(x, y, nextOrientation);
 
-	if(!misMatchedRegions.length){
+		render(
+			game.getRegions(),
+			game.getTiles(),
+			tile
+		)
+	}else{
 		game.addTile(tile);
+		renderNubs()
+
+		render(
+			game.getRegions(),
+			game.getTiles()
+		)
 	}
-	
-	renderNubs()
-	
-	render(
-		game.getRegions().concat(misMatchedRegions),
-		game.getTiles()
-	)
-
-
-	renderer.highlight('illegal', misMatchedRegions);
 }
 
 Controller.prototype.handleNubMouseover = handleNubMouseover;
 function handleNubMouseover(event, x, y, o) {
+	var nubIsOdd = !!(o%2);
+	var nextOrientationIsOdd = !!(nextOrientation.index%2);
+
+	if(nubIsOdd !== nextOrientationIsOdd){
+		nextOrientation = nextOrientation.getAt( nubIsOdd ? 1 : -1)
+	}
+
 	render(
 		game.getRegions(),
 		game.getTiles(),
@@ -161,13 +171,13 @@ function handleNubMouseout(event, x, y, o) {
 
 Controller.prototype.handleRotateClicked = handleRotateClicked;
 function handleRotateClicked(event, clockwise) {
-	nextOrientation = nextOrientation.getAt(clockwise ? -1 : 1)
-	renderer.renderTilePreview(getNextTile(0, 0, nextOrientation))
+	nextOrientation = nextOrientation.getAt(clockwise ? -2 : 2)
+	renderer.setTilePreview(getNextTile(0, 0, nextOrientation))
 }
 
 Controller.prototype.handleTileTypeClicked = handleTileTypeClicked;
 function handleTileTypeClicked(event, tileTypeClicked) {
 	nextRegions = Region[tileTypeClicked]
 
-	renderer.renderTilePreview(getNextTile(0, 0, nextOrientation))
+	renderer.setTilePreview(getNextTile(0, 0, nextOrientation), tileTypeClicked)
 }

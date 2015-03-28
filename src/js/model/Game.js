@@ -319,7 +319,7 @@ function getTraversable(regions){
 	});
 }
 
-
+/*
 Game.prototype.getEnds = getEnds;
 function getEnds(regions){
 
@@ -347,6 +347,7 @@ function getEnds(regions){
 
 	return ends;
 }
+*/
 
 function traverse(regions, region, vector, lastRegion, callback) {
 	var orientations = region.getOrientations(0);
@@ -371,27 +372,22 @@ function traverse(regions, region, vector, lastRegion, callback) {
 	};
 }
 
-Game.prototype.getMisMatchedRegions = getMisMatchedRegions;
-function getMisMatchedRegions(gameRegions, tile){
+Game.prototype.getMisMatched = getMisMatched;
+function getMisMatched(gameRegions, tileRegions){
 
-	var tileRegions = tile.getRegions();
+	var allRegions = gameRegions.concat(tileRegions);
 
-	tileRegions = $.grep(tileRegions, function(region){
-		return region.traversable;
-	});
+	var misMatched = [];
 
-	var nonTileRegions = $.grep(gameRegions, function(region){
-		return region.traversable;
-	});
-
-	traversableRegions = nonTileRegions.concat(tileRegions);
-
-	var misMatchedRegions = [];
-
+	function filter(region, vector, lastRegion){
+		return tileRegions.indexOf(region) >= 0;
+	}
 
 	function traverse(regions, region, vector, lastRegion, callback) {
 
 		if(!region) return;
+
+		console.log('region.traversable', region.traversable);
 		
 		var orientations = region.getOrientations(0);
 
@@ -405,53 +401,47 @@ function getMisMatchedRegions(gameRegions, tile){
 				o: orientation
 			};
 
-			var neighbor = getRegionAt(regions, newVector)
+			var neighbor = getRegionAt(allRegions, newVector)
 
 			if(neighbor && neighbor.getOrientations(0).indexOf(Orientation.getOpposite(orientation)) < 0){
-				
-				misMatchedRegions.push(region)
-
+				misMatched.push(neighbor);
 				continue;
 			}
 
-			callback(neighbor, newVector);
+			if(neighbor && tileRegions.indexOfneighbor >= 0){
+				callback(neighbor, newVector);
+			}
 		};
 	}
 
-	search(traversableRegions, null, traverse, tileRegions[0]);
-
-	return misMatchedRegions;
+	search(tileRegions, filter, traverse);
+	
+	return misMatched;
 }
 
 Game.prototype.getNubs = getNubs;
-function getNubs(regions){
+function getNubs(gameRegions){
 
-	regions = $.grep(regions, function(region){
-		return region.traversable;
-	});
-
-	var nubs = [];
+	gameRegions = $.grep(gameRegions, function(region){
+		return region.traversable
+	})
 
 	function filter(region, vector, lastRegion){
-		if(window.depth++ > window.max) return false;
-		
-		if(region){
-			return true;
-		}else{
-			nubs.push(new Region(vector.x, vector.y));
-			return false;
-		}
+		vector && !region && nubs.push(new Region(vector.x, vector.y))
+		return true;
 	}
 
-	search(regions, filter, traverse, regions[0]);
+	nubs = [];
 
+	search(gameRegions, filter, traverse);
+	
 	return nubs;
 }
 
 function traverse(regions, region, vector, lastRegion, callback) {
 
 	if(!region) return;
-	
+
 	var orientations = region.getOrientations(0);
 
 	for (var i = orientations.length - 1; i >= 0; i--) {
@@ -475,8 +465,13 @@ function traverse(regions, region, vector, lastRegion, callback) {
 }
 
 Game.prototype.search = search;
-function search(regions, filter, traverse, region, vector, lastRegion, logged, unLogged){
-	var neighbors = [];
+function search(regions, filter, traverse, region, vector, lastRegion, logged, unLogged, contiguous){
+
+	var results = [];
+
+	if(contiguous === undefined){
+		contiguous = !region;
+	}
 
 	if(!logged){
 		logged = [];
@@ -484,7 +479,7 @@ function search(regions, filter, traverse, region, vector, lastRegion, logged, u
 	}
 
 	if(region && logged.indexOf(region) >= 0){
-		return neighbors;
+		return results;
 	}
 
 	var index = unLogged.indexOf(region)	
@@ -493,7 +488,7 @@ function search(regions, filter, traverse, region, vector, lastRegion, logged, u
 	}
 
 	if(filter && filter(region, vector, lastRegion)){
-		neighbors.push(region);
+		results.push(region);
 	}
 	
 	traverse(
@@ -502,13 +497,13 @@ function search(regions, filter, traverse, region, vector, lastRegion, logged, u
 		vector,
 		lastRegion,
 		function(neighbor, newVector){
-			neighbors = neighbors.concat(search(regions, filter, traverse, neighbor, newVector, region, logged, unLogged));
+			results = results.concat(search(regions, filter, traverse, neighbor, newVector, region, logged, unLogged, contiguous));
 		}
 	)
 
-	while(!lastRegion && logged.length < regions.length){
-		neighbors = neighbors.concat(search(regions, filter, traverse, unLogged[0], vector, region, logged, unLogged));
+	while(contiguous && !lastRegion && logged.length < regions.length){
+		results = results.concat(search(regions, filter, traverse, unLogged[0], vector, region, logged, unLogged, contiguous));
 	}
 
-	return neighbors;
+	return results;
 }

@@ -61,7 +61,6 @@ function Renderer(selector) {
 	
 	previewGroup = svg.append("g")
 	.attr("id", 'preview-group')
-	.attr("transform", "translate(" + 140 + "," + 70 + ") rotate(" + rotate + ")");
 	tilePreviewGroup = previewGroup.append("g")
 	regionPreviewGroup = previewGroup.append("g")
 	
@@ -74,23 +73,23 @@ function Renderer(selector) {
 	.attr("cy", 0)
 	.attr("r", .2*scale);
 
-	svg.append("circle")
+	previewGroup.append("circle")
 	.attr("id", 'rotate-right')
 	.attr("class", 'rotate')
-	.attr("cx", 80)
-	.attr("cy", 70)
+	.attr("cx", -80)
+	.attr("cy", 0)
 	.attr("r", 20);
 
-	svg.append("circle")
+	previewGroup.append("circle")
 	.attr("id", 'rotate-left')
 	.attr("class", 'rotate')
-	.attr("cx", 200)
-	.attr("cy", 70)
+	.attr("cx", 80)
+	.attr("cy", 0)
 	.attr("r", 20);
 
-	$('svg').on('click', '.region', handleClickRegion);
-	$('svg').on('mouseover', '.region', handleMouseoverRegion);
-	$('svg').on('mouseout', '.region', handleMouseoutRegion);
+	$('svg').on('click', '#main-group .region', handleClickRegion);
+	$('svg').on('mouseover', '#main-group .region', handleMouseoverRegion);
+	$('svg').on('mouseout', '#main-group .region', handleMouseoutRegion);
 	
 	$('svg').on('click', '.nub', handleClickNub);
 	$('svg').on('mouseover', '.nub', handleMouseoverNub);
@@ -111,6 +110,12 @@ function center(){
 		width: width,
 		height: height
 	});
+
+
+	previewGroup.attr("transform", "translate(" + (width-150) + "," + 100 + ")");
+	tilePreviewGroup.attr("transform", "rotate(" + rotate + ")");
+	regionPreviewGroup.attr("transform", "rotate(" + rotate + ")");
+	
 }
 
 function handleResize(){
@@ -162,8 +167,26 @@ function handleClickRotate(){
 Renderer.prototype.renderTileTypes = renderTileTypes;
 function renderTileTypes(tiles){
 
-	var x = 0;
 
+	for (var i = 0; i < tiles.length; i++) {
+		var tile = tiles[i];
+		tile.x = tile.orientation.index%2 ? -(.70) : -.3;
+		tile.y = tile.orientation.index%2 ? -centerH : -(1-centerH);
+	
+		
+		var tileTypeGroup = tileTypesGroup.append("g")
+		.attr("id", 'tile-type-' + tile.title)
+		.attr("class", "tile-type")
+		.attr("data-tile-type", tile.title)
+		.attr("transform", "translate("+(80)+","+(70 + (i*6*scale))+")")
+
+		console.log('tileTypeGroup', tileTypeGroup);
+		
+		renderRegions(tile.getRegions(), tileTypeGroup);
+	};
+
+	/*
+	var x = 0;
 	tileTypesGroup.selectAll("text")
 	.data(tiles)
 	.enter()
@@ -175,14 +198,25 @@ function renderTileTypes(tiles){
 	.attr("y", function(d) { return x += 20; })
 	.attr("font-family", "sans-serif")
 	.attr("font-size", "20px");
+	*/
 }
 
-Renderer.prototype.renderTilePreview = renderTilePreview;
-function renderTilePreview(tile){
+Renderer.prototype.setTilePreview = setTilePreview;
+function setTilePreview(tile, type){
 	tile.x = tile.orientation.index%2 ? -(.70) : -.3;
 	tile.y = tile.orientation.index%2 ? -centerH : -(1-centerH);
 	renderTiles([tile], tilePreviewGroup)
 	renderRegions(tile.getRegions(), regionPreviewGroup)
+
+	if(type){
+
+		svg.selectAll("#tile-types-group .tile-type.selected")
+		.attr("class", "tile-type")
+
+		svg.selectAll('#tile-types-group .tile-type[data-tile-type="' + type + '"]')
+		.attr("class", "tile-type selected")
+	
+	}
 }
 
 Renderer.prototype.renderRegions = renderRegions;
@@ -299,6 +333,7 @@ function renderRegion(region, index, group){
 	if(!tileGroup.size()){
 		tileGroup = group.append("g")
 		.attr("id", groupSelector)
+		.attr("class", 'tile-group')
 	}
 
 	var regionGroup = tileGroup.append("g")

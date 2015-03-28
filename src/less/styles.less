@@ -45,6 +45,7 @@ svg {
 }
 .nub {
 	.triangle {
+		cursor: pointer;
 		fill-opacity: .25;
 		fill: red;
 	}
@@ -67,19 +68,20 @@ svg {
 
 .claimable,
 .claim-mark {
+	cursor: pointer;
 	-webkit-transition: transform .25s ease-out;
 	-moz-transition: transform .25s ease-out;
 	-ms-transition: transform .25s ease-out;
 	-o-transition: transform .25s ease-out;
 	transition: transform .25s ease-out;
 	
-	transform: scale(1);
+	transform: scale(1.75);
 }
 
 .preview-claimed {
 	.claimable,
 	.claim-mark {
-		transform: scale(1.45);
+		transform: scale(2);
 	}
 }
 
@@ -100,5 +102,33 @@ svg {
 	}
 	.claimable {
 		stroke: blue;
+	}
+}
+
+#tile-types-group {
+	.tile-type {
+
+		.tile-group {
+			cursor: pointer;
+
+			opacity: .8;
+			
+			-webkit-transition: all .25s ease-out;
+			-moz-transition: all .25s ease-out;
+			-ms-transition: all .25s ease-out;
+			-o-transition: all .25s ease-out;
+			transition: all .25s ease-out;
+			
+			transform: scale(1);
+			
+			&:hover {
+				transform: scale(1.1);
+			}
+			
+		}
+		&.selected .tile-group{
+			opacity: 1;
+			transform: translate(10px, 0px) scale(1.2);
+		}
 	}
 }
