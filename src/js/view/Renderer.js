@@ -8,7 +8,6 @@ var regionsGroup;
 var tilesGroup;
 var nubTilesGroup;
 var previewGroup;
-var tilePreviewGroup;
 var regionPreviewGroup;
 var tileTypesGroup;
 var scale = 20;
@@ -61,8 +60,6 @@ function Renderer(selector) {
 	
 	previewGroup = svg.append("g")
 	.attr("id", 'preview-group')
-	tilePreviewGroup = previewGroup.append("g")
-	regionPreviewGroup = previewGroup.append("g")
 	
 	tileTypesGroup = svg.append("g")
 	.attr("id", 'tile-types-group')
@@ -110,12 +107,6 @@ function center(){
 		width: width,
 		height: height
 	});
-
-
-	previewGroup.attr("transform", "translate(" + (width-150) + "," + 100 + ")");
-	tilePreviewGroup.attr("transform", "rotate(" + rotate + ")");
-	regionPreviewGroup.attr("transform", "rotate(" + rotate + ")");
-	
 }
 
 function handleResize(){
@@ -180,34 +171,12 @@ function renderTileTypes(tiles){
 		.attr("data-tile-type", tile.title)
 		.attr("transform", "translate("+(80)+","+(70 + (i*6*scale))+")")
 
-		console.log('tileTypeGroup', tileTypeGroup);
-		
 		renderRegions(tile.getRegions(), tileTypeGroup);
 	};
-
-	/*
-	var x = 0;
-	tileTypesGroup.selectAll("text")
-	.data(tiles)
-	.enter()
-	.append("text")
-	.text( function (d) {return d.title; })
-	.attr("class", "tile-type")
-	.attr("id", function (d) {return 'tile-type-' + d.title; })
-	.attr("data-tile-type", function (d) {return d.title; })
-	.attr("y", function(d) { return x += 20; })
-	.attr("font-family", "sans-serif")
-	.attr("font-size", "20px");
-	*/
 }
 
 Renderer.prototype.setTilePreview = setTilePreview;
-function setTilePreview(tile, type){
-	tile.x = tile.orientation.index%2 ? -(.70) : -.3;
-	tile.y = tile.orientation.index%2 ? -centerH : -(1-centerH);
-	renderTiles([tile], tilePreviewGroup)
-	renderRegions(tile.getRegions(), regionPreviewGroup)
-
+function setTilePreview(type){
 	if(type){
 
 		svg.selectAll("#tile-types-group .tile-type.selected")

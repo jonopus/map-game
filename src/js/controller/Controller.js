@@ -31,6 +31,8 @@ function Controller(newGame, newRenderer) {
 	game.addTiles(Tile.getStartTiles());
 	renderer.renderTileTypes(Tile.getTiles())
 	render(game.getRegions(), game.getTiles())
+	renderer.setTilePreview('O3')
+
 	renderNubs();
 }
 
@@ -48,7 +50,6 @@ function render(regions, tiles, nextTile) {
 		tiles = tiles.concat(nextTile)
 	}
 
-	renderer.setTilePreview(getNextTile(0, 0, nextOrientation));
 	renderer.renderTiles(tiles);
 	renderer.renderRegions(regions);
 }
@@ -120,10 +121,8 @@ function handleNubClicked(event, x, y, o) {
 	var regions = game.getRegions();
 
 	var tile = getNextTile(x, y, nextOrientation);
-	var tileRegions = $.grep(tile.getRegions(), function(region){
-		return region.traversable;
-	});
-	var misMatched = game.getMisMatched(regions, tileRegions)
+	
+	var misMatched = game.getMisMatched(regions, tile)
 
 	if(misMatched.length){
 		nextOrientation = nextOrientation.getAt(2);
@@ -147,6 +146,8 @@ function handleNubClicked(event, x, y, o) {
 
 Controller.prototype.handleNubMouseover = handleNubMouseover;
 function handleNubMouseover(event, x, y, o) {
+	var regions = game.getRegions();
+
 	var nubIsOdd = !!(o%2);
 	var nextOrientationIsOdd = !!(nextOrientation.index%2);
 
@@ -154,10 +155,30 @@ function handleNubMouseover(event, x, y, o) {
 		nextOrientation = nextOrientation.getAt( nubIsOdd ? 1 : -1)
 	}
 
+	var tile;
+	var misMatched;
+
+	var tries = 0;
+	var orientation = nextOrientation;
+
+	while(
+		(!tile || !misMatched) ||
+		(++tries < 3 && misMatched.length !== 0)
+	){
+		tile && (misMatched = game.getMisMatched(regions, tile));
+
+		if(misMatched && misMatched.length){
+			orientation = orientation.getAt(2);
+		}
+		tile = getNextTile(x, y, orientation);
+	}
+
+	nextOrientation = orientation;
+
 	render(
-		game.getRegions(),
+		regions,
 		game.getTiles(),
-		getNextTile(x, y, nextOrientation)
+		tile
 	)
 }
 
@@ -172,12 +193,11 @@ function handleNubMouseout(event, x, y, o) {
 Controller.prototype.handleRotateClicked = handleRotateClicked;
 function handleRotateClicked(event, clockwise) {
 	nextOrientation = nextOrientation.getAt(clockwise ? -2 : 2)
-	renderer.setTilePreview(getNextTile(0, 0, nextOrientation))
 }
 
 Controller.prototype.handleTileTypeClicked = handleTileTypeClicked;
 function handleTileTypeClicked(event, tileTypeClicked) {
 	nextRegions = Region[tileTypeClicked]
 
-	renderer.setTilePreview(getNextTile(0, 0, nextOrientation), tileTypeClicked)
+	renderer.setTilePreview(tileTypeClicked)
 }

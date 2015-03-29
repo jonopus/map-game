@@ -319,36 +319,6 @@ function getTraversable(regions){
 	});
 }
 
-/*
-Game.prototype.getEnds = getEnds;
-function getEnds(regions){
-
-	regions = $.grep(regions, function(region){
-		return region.traversable;
-	});
-
-	var ends = [];
-
-	search(regions, function(region, vector, lastRegion){
-		if(region){
-			return true;
-		}else{
-			var endVector = {
-				x:vector.x - vector.o.vector.x,
-				y:vector.y - vector.o.vector.y
-			}
-
-			var end = getRegionAt(regions, endVector);
-
-			ends.push(end);
-			return false;
-		}
-	}, traverse, regions[0]);
-
-	return ends;
-}
-*/
-
 function traverse(regions, region, vector, lastRegion, callback) {
 	var orientations = region.getOrientations(0);
 
@@ -373,7 +343,11 @@ function traverse(regions, region, vector, lastRegion, callback) {
 }
 
 Game.prototype.getMisMatched = getMisMatched;
-function getMisMatched(gameRegions, tileRegions){
+function getMisMatched(gameRegions, tile){
+
+	var tileRegions = $.grep(tile.getRegions(), function(region){
+		return region.traversable;
+	});
 
 	var allRegions = gameRegions.concat(tileRegions);
 
@@ -387,8 +361,6 @@ function getMisMatched(gameRegions, tileRegions){
 
 		if(!region) return;
 
-		console.log('region.traversable', region.traversable);
-		
 		var orientations = region.getOrientations(0);
 
 		for (var i = orientations.length - 1; i >= 0; i--) {
