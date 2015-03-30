@@ -13,7 +13,9 @@ svg {
 
 .region {
 	.hexagon {
-		fill-opacity: .5;
+		fill-opacity: 0;
+		stroke: black;
+		stroke-opacity: .1;
 	}
 }
 .liberty {
@@ -36,11 +38,75 @@ svg {
 }
 
 
+.tile-type,
 .tile {
 	.triangle {
 		fill-opacity: 0;
-		stroke: black;
 		pointer-events: none;
+	}
+
+	.tile-img {
+		opacity: .5;
+	}
+
+	&[data-o="0"] {
+		.tile-img {
+			transform-origin: 100px 108px;
+			transform:
+				scale(.63)
+				translate(-159px, -140px)
+				rotate(180-13.89deg);
+		}
+	}
+
+	&[data-o="1"] {
+		.tile-img {
+			transform-origin: 100px 108px;
+			transform:
+				scale(.63)
+				translate(-186px, -155px)
+				rotate(240-13.89deg);
+		}
+	}
+
+	&[data-o="2"] {
+		.tile-img {
+			transform-origin: 100px 108px;
+			transform:
+				scale(.63)
+				translate(-159px, -138.5px)
+				rotate(300-13.89deg);
+		}
+	}
+
+	&[data-o="3"] {
+		.tile-img {
+			transform-origin: 100px 108px;
+			transform:
+				scale(.63)
+				translate(-186px, -155px)
+				rotate(-13.89deg);
+		}
+	}
+
+	&[data-o="4"] {
+		.tile-img {
+			transform-origin: 100px 108px;
+			transform:
+				scale(.63)
+				translate(-159px, -139.5px)
+				rotate(60-13.89deg);
+		}
+	}
+
+	&[data-o="5"] {
+		.tile-img {
+			transform-origin: 100px 108px;
+			transform:
+				scale(.63)
+				translate(-185.5px, -156px)
+				rotate(120-13.89deg);
+		}
 	}
 }
 .nub {

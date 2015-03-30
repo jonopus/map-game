@@ -15,6 +15,7 @@ var paths = {
 	scripts: ['src/js/**/*.js'],
 	app: ['src/js/App.js'],
 	less: ['src/less/**/*.less'],
+	media: ['src/media/**/*'],
 	build: 'build'
 };
 
@@ -54,10 +55,16 @@ gulp.task('less', function () {
 	.pipe(connect.reload());
 });
 
+gulp.task('media', function () {
+	return gulp.src(paths.media)
+	.pipe(gulp.dest(paths.build + '/media'));
+});
+
 gulp.task('watch', function() {
 	gulp.watch(paths.html, ['html']);
 	gulp.watch(paths.scripts, ['scripts']);
 	gulp.watch(paths.less, ['less']);
+	gulp.watch(paths.media, ['media']);
 });
 
 gulp.task('serve', function() {
@@ -70,6 +77,6 @@ gulp.task('serve', function() {
 	});
 });
 
-gulp.task('build', ['clean', 'scripts', 'less', 'html']);
+gulp.task('build', ['clean', 'media', 'scripts', 'less', 'html']);
 
 gulp.task('default', ['build', 'serve', 'watch']);

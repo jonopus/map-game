@@ -5,12 +5,11 @@ var tileCount = 0;
 var claimedRegions = [];
 
 module.exports = Tile;
-function Tile(regions, x, y, orientation, title) {
-
+function Tile(regions, x, y, orientation, name) {
 	this.x = x || 0;
 	this.y = y || 0;
 
-	this.title = title || '';
+	this.name = name || '';
 	this.id = ++tileCount;
 	this.orientation = orientation || Orientation.XP;
 	
@@ -18,10 +17,10 @@ function Tile(regions, x, y, orientation, title) {
 }
 
 Tile.prototype.getRegions = getRegions;
-function getRegions(useNubs){
+function getRegions(){
 	var tile = this;
 
-	var regions = $.map(useNubs ? Region.O3 : this.regions, function(region, i){
+	var regions = $.map(this.regions, function(region, i){
 		var point = Orientation.rotatePoint({x:region.x, y:region.y}, tile.orientation);
 		
 		region = jQuery.extend({}, region);
@@ -60,12 +59,12 @@ var w = 4
 var h = 3 // triangle size
 
 Tile.START_TILES = [
-	new Tile(Region.O3, -1, -1, Orientation.YP),
-	new Tile(Region.O3, -1, 0),
-	new Tile(Region.O3, -1, 0, Orientation.YP),
-	new Tile(Region.O3, 0, -1),
-	new Tile(Region.O3, 0, -1, Orientation.YP),
-	new Tile(Region.O3, 0, 0)
+	new Tile(Region.O3, -1, -1, Orientation.YP, 'O3'),
+	new Tile(Region.O3, -1, 0, null, 'O3'),
+	new Tile(Region.O3, -1, 0, Orientation.YP, 'O3'),
+	new Tile(Region.O3, 0, -1, null, 'O3'),
+	new Tile(Region.O3, 0, -1, Orientation.YP, 'O3'),
+	new Tile(Region.O3, 0, 0, null, 'O3')
 ]
 Tile.getStartTiles = function(){
 	return Tile.START_TILES;

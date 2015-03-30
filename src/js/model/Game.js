@@ -2,6 +2,9 @@ var Orientation = require('./Orientation.js');
 var Region = require('./Region.js');
 var Tile = require('./Tile.js');
 
+var nextTile;
+var previewTile;
+
 module.exports = Game;
 function Game() {
 	this.tiles = [];
@@ -24,9 +27,25 @@ function nextPlayer(){
 	}
 }
 
-Game.prototype.addTile = addTile;
-function addTile(tile){
-	this.tiles.push(tile);
+Game.prototype.addPreviewTile = addPreviewTile;
+function addPreviewTile(tile){
+	previewTile = tile;
+}
+
+Game.prototype.getPreviewTile = getPreviewTile;
+function getPreviewTile(){
+	return previewTile;
+}
+
+Game.prototype.addNextTile = addNextTile;
+function addNextTile(tile){
+	previewTile = undefined;
+	nextTile = tile;
+}
+
+Game.prototype.getNextTile = getNextTile;
+function getNextTile(){
+	return nextTile;
 }
 
 Game.prototype.addTiles = addTiles;
@@ -36,32 +55,33 @@ function addTiles(tiles){
 
 Game.prototype.getTile = getTile;
 function getTile(tileId){
-	return $.grep(this.tiles, function(tile, i){
+	return $.grep(this.getTiles(), function(tile, i){
 		return tile.id === parseInt(tileId)
 	})[0];
 }
 
 Game.prototype.getTiles = getTiles;
-function getTiles(){
-	return this.tiles;
+function getTiles(usePreview){
+	return this.tiles
+	.concat(!usePreview && nextTile ? [nextTile] : [])
+	.concat(usePreview && previewTile ? [previewTile] : []);
 }
 
 Game.prototype.getRegions = getRegions;
-function getRegions(useNubs){
+function getRegions(usePreview){
 
 	var regions = [];
+	var tiles = this.getTiles(usePreview);
 
-	for (var i = this.tiles.length - 1; i >= 0; i--) {
-		var tile = this.tiles[i];
+	for (var i = tiles.length - 1; i >= 0; i--) {
+		var tile = tiles[i];
 
-		var tileRegions = tile.getRegions(useNubs)
+		var tileRegions = tile.getRegions()
 
 		regions = regions.concat(tileRegions);
 	};
 
-	if(!useNubs){
-		applyClaims(regions, this.getClaims());
-	}
+	applyClaims(regions, this.getClaims());
 
 	return regions;
 }
@@ -97,7 +117,11 @@ function removeClaims(captures){
 
 Game.prototype.applyClaims = applyClaims;
 function applyClaims(regions, claims){
-	
+	if(nextTile && this.tiles){
+		this.tiles.push(nextTile);
+		nextTile = undefined;
+	}
+
 	for (var c = claims.length - 1; c >= 0; c--) {
 		var claim = claims[c];
 
@@ -172,6 +196,8 @@ function getCaptures(regions, player, region){
 	if(region.claimed) return captures;
 
 	var neighbors = this.getNeighbors(regions, region);
+
+	console.log('neighbors', neighbors);
 
 	for (var i = neighbors.length - 1; i >= 0; i--) {
 		var neighbor = neighbors[i];
@@ -281,7 +307,8 @@ function getGroup(regions, player, region, startRegion, loggedRegions){
 
 
 Game.prototype.getNubTiles = getNubTiles;
-function getNubTiles(regions){
+function getNubTiles(){
+	var regions = this.getNubs(this.getRegions());
 
 	var nubs = [];
 	
@@ -399,8 +426,37 @@ function getNubs(gameRegions){
 	})
 
 	function filter(region, vector, lastRegion){
+		if(lastRegion && nextTile && lastRegion.tileId === nextTile.id){
+			return false;
+		}
 		vector && !region && nubs.push(new Region(vector.x, vector.y))
 		return true;
+	}
+
+	function traverse(regions, region, vector, lastRegion, callback) {
+
+		if(!region) return;
+
+		var orientations = region.getOrientations(0);
+
+		for (var i = orientations.length - 1; i >= 0; i--) {
+
+			var orientation = orientations[i];
+			
+			var newVector = {
+				x:region.x + orientation.vector.x,
+				y:region.y + orientation.vector.y,
+				o: orientation
+			};
+
+			var neighbor = getRegionAt(regions, newVector)
+
+			if(neighbor && neighbor.getOrientations(0).indexOf(Orientation.getOpposite(orientation)) < 0){
+				continue;
+			}
+
+			callback(neighbor, newVector);
+		};
 	}
 
 	nubs = [];
