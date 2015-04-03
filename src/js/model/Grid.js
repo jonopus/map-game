@@ -46,9 +46,55 @@ Grid.getRegionAtVector = function(tiles, regions, tile, vector){
 		return;
 	}
 	var portIndices = (((vector.i + 9) + ((1-(vector.i%3)) * 2))%18);
-	var regionId = tileAtVector.getPorts().ports[portIndices];
+	var ports = tileAtVector.getPorts()
+	var regionId = ports.ports[portIndices];
 
 	return Grid.getRegion(regions, tileAtVector.id, regionId);
+}
+
+Grid.getMisMatches = function(gameTiles, gameRegions, tile){
+	allTiles = gameTiles.concat([tile]);
+
+	var tileRegions = $.map(tile.ports.getRegions(), function(id){
+		return {
+			tileId:tile.id,
+			regionId:id
+		}
+	})
+
+	var allRegions = gameRegions.concat(tileRegions);
+
+	var results = [];
+
+	function traverse(regions, region, vector, lastRegion, callback){
+		
+		if(
+			!region
+		) return;
+
+
+		var nextTile = Grid.getTile(allTiles, region.tileId);
+		var vectors = nextTile.getPortVectors(region.regionId)
+		
+		for (var i = vectors.length - 1; i >= 0; i--) {
+			var nextVector = vectors[i]
+			var nextRegion = Grid.getRegionAtVector(allTiles, allRegions, nextTile, nextVector);
+			
+			if(!region || !nextRegion)
+				continue
+
+			if(
+				(region.regionId === 0 && nextRegion.regionId !== 0) ||
+				(region.regionId !== 0 && nextRegion.regionId === 0)
+			){
+				results.push(nextRegion);
+			}
+		};
+	}
+
+	Grid.search(tileRegions, null, traverse);
+
+	return results;
 }
 
 Grid.getLiberties = function(tiles, regions, firstRegion, playerId){
@@ -64,7 +110,8 @@ Grid.getLiberties = function(tiles, regions, firstRegion, playerId){
 
 	function traverse(regions, region, vector, lastRegion, callback){
 		if(
-			!region || (
+			!region ||
+			(region && region.regionId === 0) || (
 				region.playerId !== playerId &&
 				region !== firstRegion
 			)
@@ -83,21 +130,23 @@ Grid.getLiberties = function(tiles, regions, firstRegion, playerId){
 	return Grid.search(regions, filter, traverse, Grid.getRegion(regions, firstRegion.tileId, firstRegion.regionId));
 }
 
-Grid.getCaptures = function(tiles, regions, firstRegion, playerId){
+Grid.getGroup = function(tiles, regions, firstRegion, playerId){
 
 	function filter(region, vector, lastRegion){
 
 		return (
 			region &&
-			region.playerId &&
-			region.playerId !== playerId &&
-			Grid.getLiberties(tiles, regions, region, region.playerId).length <= 1
+			region.playerId === playerId
 		);
 	}
 
 	function traverse(regions, region, vector, lastRegion, callback){
 		if(
-			!region
+			!region ||
+			(region && region.regionId === 0) || (
+				region.playerId !== playerId &&
+				region !== firstRegion
+			)
 		) return;
 
 		var nextTile = Grid.getTile(tiles, region.tileId);
@@ -110,13 +159,53 @@ Grid.getCaptures = function(tiles, regions, firstRegion, playerId){
 		};
 	}
 
-	return Grid.search(regions, filter, traverse, Grid.getRegion(regions, firstRegion.tileId, firstRegion.regionId));
+	var results = Grid.search(regions, filter, traverse, Grid.getRegion(regions, firstRegion.tileId, firstRegion.regionId));
+
+	return results;
+}
+
+Grid.getCaptures = function(tiles, regions, firstRegion, playerId){
+
+	var results = [];
+
+	function filter(region, vector, lastRegion){
+
+		if (
+			region &&
+			region.playerId &&
+			region.playerId !== playerId &&
+			Grid.getLiberties(tiles, regions, region, region.playerId).length <= 1
+		) {
+			results = results.concat(Grid.getGroup(tiles, regions, region, region.playerId));
+		}
+	}
+
+	function traverse(regions, region, vector, lastRegion, callback){
+		if(
+			!region ||
+			(region && region.regionId === 0) ||
+			lastRegion === firstRegion
+		) return;
+
+		var nextTile = Grid.getTile(tiles, region.tileId);
+		var vectors = nextTile.getPortVectors(region.regionId)
+
+		for (var i = vectors.length - 1; i >= 0; i--) {
+			var nextVector = vectors[i]
+			var nextRegion = Grid.getRegionAtVector(tiles, regions, nextTile, nextVector);
+			callback(nextRegion, nextVector);
+		};
+	}
+
+	Grid.search(regions, filter, traverse, Grid.getRegion(regions, firstRegion.tileId, firstRegion.regionId));
+
+	return results;
 }
 
 Grid.getNubs = function(tiles, regions){
 
 	var nubLog = []
-	var nubs = []
+	var results = []
 
 	function filter(region, vector, lastRegion){
 		if(!vector) return;
@@ -125,21 +214,19 @@ Grid.getNubs = function(tiles, regions){
 
 		if(!region && nubLog.indexOf(nubId) < 0){
 			nubLog.push(nubId);
-			nubs.push(new Tile(vector.x, vector.y, null, Orientation.getOpposite(vector.o)))
+			results.push(new Tile(vector.x, vector.y, null, Orientation.getOpposite(vector.o)))
 		}
 	}
 
 
 	function traverse(regions, region, vector, lastRegion, callback){
 		if(
-			!region || 
+			!region ||
 			(region && region.regionId === 0)
 		) return;
 
 		var nextTile = Grid.getTile(tiles, region.tileId);
-		var vectors = nextTile.getPortVectors(region.regionId);
-
-		console.log('vectors', region.regionId, vectors);
+		var vectors = nextTile.getPortVectors(region.regionId)
 
 		for (var i = vectors.length - 1; i >= 0; i--) {
 			var nextVector = vectors[i]
@@ -149,7 +236,8 @@ Grid.getNubs = function(tiles, regions){
 	}
 
 	Grid.search(regions, filter, traverse);
-	return nubs;
+
+	return results;
 }
 
 Grid.search = function(regions, filter, traverse, region, vector, lastRegion, logged, unLogged, contiguous){

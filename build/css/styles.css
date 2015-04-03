@@ -189,6 +189,29 @@ th {
 .nub {
   cursor: pointer;
 }
+.tile-type {
+  cursor: pointer;
+}
+.tile-type .tile {
+  transform: scale(1);
+  -webkit-transition: all 0.25s ease-out;
+  -moz-transition: all 0.25s ease-out;
+  -ms-transition: all 0.25s ease-out;
+  -o-transition: all 0.25s ease-out;
+  transition: all 0.25s ease-out;
+}
+.tile-type .tile:hover {
+  transform: scale(1.1);
+}
+.tile-type.selected .tile {
+  transform: scale(1.2);
+}
+.tile-type .region {
+  display: none;
+}
+.tile.preview {
+  pointer-events: none;
+}
 .tile .tile-img {
   pointer-events: none;
   transform-origin: 100px 108px;

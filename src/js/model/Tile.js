@@ -32,3 +32,15 @@ Tile.prototype.getPortVectors = function(regionId){
 		return vector;
 	});
 }
+
+Tile.TILE_TYPES = [
+	new Tile(0, 0, Ports.O3),
+	new Tile(0, 0, Ports.O2),
+	new Tile(0, 0, Ports.O1),
+	new Tile(0, 0, Ports.C3),
+	new Tile(0, 0, Ports.C2),
+	new Tile(0, 0, Ports.C1)
+]
+Tile.getTileTypes = function(){
+	return Tile.TILE_TYPES;
+}

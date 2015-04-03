@@ -9522,6 +9522,14 @@ var Player = require('../model/Player.js');
 var game;
 var renderer;
 
+var tiles;
+var claims;
+var player;
+var regions;
+var nubs;
+var tileTypeId = 'O3';
+var tile;
+
 module.exports = Controller;
 function Controller() {
 	game = new Game();
@@ -9536,46 +9544,87 @@ function Controller() {
 
 	game.addPlayer(new Player('red'));
 	game.addPlayer(new Player('blue'));
-
 	game.nextPlayer();
-
-	renderer.render(game);
 
 	$('body').on('MARK_CLICKED', handleRegionClicked);
 	$('body').on('NUB_CLICKED', handleNubClicked);
+	$('body').on('TILE_TYPE_CLICKED', handleTileTypeClicked);
+	$('body').on('NUB_MOUSEOVER', handleNubMouseover);
+	$('body').on('NUB_MOUSEOUT', handleNubMouseout);
+	
+	update();
+
+	renderGame();
+
+	renderer.renderTileTypes(Tile.getTileTypes());
+
 }
 
-function handleNubClicked(event, x, y, o){
-	console.log('x, y', x, y, o);
-
-	game.addTile(new Tile(x, y, Ports.O3, Orientation.get(o)));
-	
-	var tiles = game.getTiles();
-	var claims = game.getClaims();
-	var player = game.getCurrentPlayer();
-	var regions = Grid.getRegions(tiles);
+function update(){
+	tiles = game.getTiles();
+	claims = game.getClaims();
+	player = game.getCurrentPlayer();
+	regions = Grid.getRegions(tiles);
 	regions = game.applyClaims(regions, claims);
-	
+}
+
+function renderGame(liberties, captures){
+
 	var nubs = Grid.getNubs(tiles, regions);
 	renderer.renderNubs(nubs);
+
 	renderer.render(game);
-	renderer.highlight([], 'liberties');
-	renderer.highlight([], 'captures');
+	renderer.highlight(liberties || [], 'liberties');
+	renderer.highlight(captures || [], 'captures');
 
 	$.each(game.getPlayers(), function(i, player) {
 		renderer.highlight(player.getClaims(), player.color);
 	})
 }
 
+function handleNubClicked(event, x, y, o){
+	game.addTile(new Tile(x, y, Ports.O3, Orientation.get(o)));
+	update();
+	renderGame();
+}
+
+function handleTileTypeClicked(event, id){
+	tileTypeId = id
+}
+
+function handleNubMouseout(event, x, y, o){
+	renderer.renderPreviewTile();
+}
+
+function handleNubMouseover(event, x, y, o){
+	update();
+
+	var tile;
+	var tries = 0;
+	var orientation = Orientation.get(o);
+	var previewMisMatches;
+
+	while(
+		(!tile || !previewMisMatches) ||
+		(++tries <= 3 && previewMisMatches.length !== 0)
+	){
+		tile && (previewMisMatches = Grid.getMisMatches(tiles, regions, tile));
+
+		if(previewMisMatches && previewMisMatches.length){
+			orientation = orientation.getAt(2);
+		}
+
+		console.log(previewMisMatches);
+		tile = new Tile(x, y, Ports[tileTypeId], orientation);
+	}
+
+	tile && renderer.renderPreviewTile(tile);
+}
+
 function handleRegionClicked(event, tileId, regionId){
-	var tiles = game.getTiles();
-	var claims = game.getClaims();
-	var player = game.getCurrentPlayer();
-	var regions = Grid.getRegions(tiles);
-	regions = game.applyClaims(regions, claims);
+	update();
+	
 	var region = Grid.getRegion(regions, tileId, regionId);
-	
-	
 	var liberties = Grid.getLiberties(tiles, regions, region, player.id);
 	var captures = Grid.getCaptures(tiles, regions, region, player.id);
 
@@ -9583,20 +9632,14 @@ function handleRegionClicked(event, tileId, regionId){
 		game.removeClaims(captures);
 		player.addClaim(region);
 		claims.push(region);
-		game.nextPlayer()
+		game.nextPlayer();
 	}
 
-	var nubs = Grid.getNubs(tiles, regions);
-	renderer.renderNubs(nubs);
-	renderer.render(game);
-	renderer.highlight(liberties, 'liberties');
-	renderer.highlight(captures, 'captures');
-
-	$.each(game.getPlayers(), function(i, player) {
-		renderer.highlight(player.getClaims(), player.color);
-	})
+	renderGame(liberties, captures);
 	
 }
+
+
 
 },{"../model/Game.js":5,"../model/Grid.js":6,"../model/Orientation.js":7,"../model/Player.js":8,"../model/Ports.js":9,"../model/Tile.js":10,"../view/Renderer.js":11}],4:[function(require,module,exports){
 if (!String.prototype.format) {
@@ -9746,9 +9789,55 @@ Grid.getRegionAtVector = function(tiles, regions, tile, vector){
 		return;
 	}
 	var portIndices = (((vector.i + 9) + ((1-(vector.i%3)) * 2))%18);
-	var regionId = tileAtVector.getPorts().ports[portIndices];
+	var ports = tileAtVector.getPorts()
+	var regionId = ports.ports[portIndices];
 
 	return Grid.getRegion(regions, tileAtVector.id, regionId);
+}
+
+Grid.getMisMatches = function(gameTiles, gameRegions, tile){
+	allTiles = gameTiles.concat([tile]);
+
+	var tileRegions = $.map(tile.ports.getRegions(), function(id){
+		return {
+			tileId:tile.id,
+			regionId:id
+		}
+	})
+
+	var allRegions = gameRegions.concat(tileRegions);
+
+	var results = [];
+
+	function traverse(regions, region, vector, lastRegion, callback){
+		
+		if(
+			!region
+		) return;
+
+
+		var nextTile = Grid.getTile(allTiles, region.tileId);
+		var vectors = nextTile.getPortVectors(region.regionId)
+		
+		for (var i = vectors.length - 1; i >= 0; i--) {
+			var nextVector = vectors[i]
+			var nextRegion = Grid.getRegionAtVector(allTiles, allRegions, nextTile, nextVector);
+			
+			if(!region || !nextRegion)
+				continue
+
+			if(
+				(region.regionId === 0 && nextRegion.regionId !== 0) ||
+				(region.regionId !== 0 && nextRegion.regionId === 0)
+			){
+				results.push(nextRegion);
+			}
+		};
+	}
+
+	Grid.search(tileRegions, null, traverse);
+
+	return results;
 }
 
 Grid.getLiberties = function(tiles, regions, firstRegion, playerId){
@@ -9764,7 +9853,8 @@ Grid.getLiberties = function(tiles, regions, firstRegion, playerId){
 
 	function traverse(regions, region, vector, lastRegion, callback){
 		if(
-			!region || (
+			!region ||
+			(region && region.regionId === 0) || (
 				region.playerId !== playerId &&
 				region !== firstRegion
 			)
@@ -9783,21 +9873,23 @@ Grid.getLiberties = function(tiles, regions, firstRegion, playerId){
 	return Grid.search(regions, filter, traverse, Grid.getRegion(regions, firstRegion.tileId, firstRegion.regionId));
 }
 
-Grid.getCaptures = function(tiles, regions, firstRegion, playerId){
+Grid.getGroup = function(tiles, regions, firstRegion, playerId){
 
 	function filter(region, vector, lastRegion){
 
 		return (
 			region &&
-			region.playerId &&
-			region.playerId !== playerId &&
-			Grid.getLiberties(tiles, regions, region, region.playerId).length <= 1
+			region.playerId === playerId
 		);
 	}
 
 	function traverse(regions, region, vector, lastRegion, callback){
 		if(
-			!region
+			!region ||
+			(region && region.regionId === 0) || (
+				region.playerId !== playerId &&
+				region !== firstRegion
+			)
 		) return;
 
 		var nextTile = Grid.getTile(tiles, region.tileId);
@@ -9810,13 +9902,53 @@ Grid.getCaptures = function(tiles, regions, firstRegion, playerId){
 		};
 	}
 
-	return Grid.search(regions, filter, traverse, Grid.getRegion(regions, firstRegion.tileId, firstRegion.regionId));
+	var results = Grid.search(regions, filter, traverse, Grid.getRegion(regions, firstRegion.tileId, firstRegion.regionId));
+
+	return results;
+}
+
+Grid.getCaptures = function(tiles, regions, firstRegion, playerId){
+
+	var results = [];
+
+	function filter(region, vector, lastRegion){
+
+		if (
+			region &&
+			region.playerId &&
+			region.playerId !== playerId &&
+			Grid.getLiberties(tiles, regions, region, region.playerId).length <= 1
+		) {
+			results = results.concat(Grid.getGroup(tiles, regions, region, region.playerId));
+		}
+	}
+
+	function traverse(regions, region, vector, lastRegion, callback){
+		if(
+			!region ||
+			(region && region.regionId === 0) ||
+			lastRegion === firstRegion
+		) return;
+
+		var nextTile = Grid.getTile(tiles, region.tileId);
+		var vectors = nextTile.getPortVectors(region.regionId)
+
+		for (var i = vectors.length - 1; i >= 0; i--) {
+			var nextVector = vectors[i]
+			var nextRegion = Grid.getRegionAtVector(tiles, regions, nextTile, nextVector);
+			callback(nextRegion, nextVector);
+		};
+	}
+
+	Grid.search(regions, filter, traverse, Grid.getRegion(regions, firstRegion.tileId, firstRegion.regionId));
+
+	return results;
 }
 
 Grid.getNubs = function(tiles, regions){
 
 	var nubLog = []
-	var nubs = []
+	var results = []
 
 	function filter(region, vector, lastRegion){
 		if(!vector) return;
@@ -9825,21 +9957,19 @@ Grid.getNubs = function(tiles, regions){
 
 		if(!region && nubLog.indexOf(nubId) < 0){
 			nubLog.push(nubId);
-			nubs.push(new Tile(vector.x, vector.y, null, Orientation.getOpposite(vector.o)))
+			results.push(new Tile(vector.x, vector.y, null, Orientation.getOpposite(vector.o)))
 		}
 	}
 
 
 	function traverse(regions, region, vector, lastRegion, callback){
 		if(
-			!region || 
+			!region ||
 			(region && region.regionId === 0)
 		) return;
 
 		var nextTile = Grid.getTile(tiles, region.tileId);
-		var vectors = nextTile.getPortVectors(region.regionId);
-
-		console.log('vectors', region.regionId, vectors);
+		var vectors = nextTile.getPortVectors(region.regionId)
 
 		for (var i = vectors.length - 1; i >= 0; i--) {
 			var nextVector = vectors[i]
@@ -9849,7 +9979,8 @@ Grid.getNubs = function(tiles, regions){
 	}
 
 	Grid.search(regions, filter, traverse);
-	return nubs;
+
+	return results;
 }
 
 Grid.search = function(regions, filter, traverse, region, vector, lastRegion, logged, unLogged, contiguous){
@@ -10032,7 +10163,7 @@ Player.prototype.getClaims = function(){
 },{}],9:[function(require,module,exports){
 var Orientation = require('./Orientation.js');
 
-Ports.O3 = new Ports('o3', [
+Ports.O3 = new Ports('O3', [
 	0, 1, 0,
 	0, 0, 0,
 	0, 1, 0,
@@ -10041,7 +10172,7 @@ Ports.O3 = new Ports('o3', [
 	0, 0, 0
 ]);
 
-Ports.O2 = new Ports('o2', [
+Ports.O2 = new Ports('O2', [
 	1, 0, 1,
 	0, 0, 0,
 	0, 1, 0,
@@ -10050,7 +10181,7 @@ Ports.O2 = new Ports('o2', [
 	0, 0, 0
 ]);
 
-Ports.O1 = new Ports('o1', [
+Ports.O1 = new Ports('O1', [
 	0, 1, 0,
 	0, 0, 0,
 	1, 0, 1,
@@ -10059,7 +10190,7 @@ Ports.O1 = new Ports('o1', [
 	0, 0, 0
 ]);
 
-Ports.C3 = new Ports('c3', [
+Ports.C3 = new Ports('C3', [
 	4, 0, 2,
 	0, 0, 0,
 	2, 0, 3,
@@ -10068,7 +10199,7 @@ Ports.C3 = new Ports('c3', [
 	0, 0, 0
 ]);
 
-Ports.C2 = new Ports('c2', [
+Ports.C2 = new Ports('C2', [
 	0, 5, 0,
 	0, 0, 0,
 	5, 0, 3,
@@ -10077,7 +10208,7 @@ Ports.C2 = new Ports('c2', [
 	0, 0, 0
 ]);
 
-Ports.C1 = new Ports('c1', [
+Ports.C1 = new Ports('C1', [
 	4, 0, 2,
 	0, 0, 0,
 	0, 2, 0,
@@ -10114,7 +10245,7 @@ Ports.prototype.getIndices = function(index){
 		if(index === item){
 			indices.push(i)
 		}
-	})
+	});
 
 	return indices
 }
@@ -10154,13 +10285,28 @@ Tile.prototype.getPortVectors = function(regionId){
 	});
 }
 
+Tile.TILE_TYPES = [
+	new Tile(0, 0, Ports.O3),
+	new Tile(0, 0, Ports.O2),
+	new Tile(0, 0, Ports.O1),
+	new Tile(0, 0, Ports.C3),
+	new Tile(0, 0, Ports.C2),
+	new Tile(0, 0, Ports.C1)
+]
+Tile.getTileTypes = function(){
+	return Tile.TILE_TYPES;
+}
+
 },{"./Orientation.js":7,"./Ports.js":9}],11:[function(require,module,exports){
 var d3 = require('d3');
 var Orientation = require('../model/Orientation.js');
 
 var svg;
 var mainGroup;
+var tileTypesGroup;
+var nubsGroup;
 var tilesGroup;
+var tilePreviewGroup;
 
 var scale = 40;
 var d2 = Math.sqrt(3);
@@ -10203,18 +10349,25 @@ function Renderer() {
 	.attr('id', 'main-group');
 
 	mainGroup.append('circle')
-	.attr('class', 'center-mark')
+	.classed('center-mark', true)
 	.attr('cx', 0)
 	.attr('cy', 0)
 	.attr('r', .2*scale);
 	
+	tileTypesGroup = svg.append('g');
+	nubsGroup = mainGroup.append('g');
 	tilesGroup = mainGroup.append('g');
+	tilePreviewGroup = mainGroup.append('g');
 
 	$(window).on('resize', center);
 	center();
 
 	$('body').on('click', '.tile .region', handleRegionClick);
 	$('body').on('click', '.nub', handleNubClick);
+	$('body').on('click', '.nub', handleNubClick);
+	$('body').on('click', '.tile-type', handleTileTypeClick);
+	$('body').on('mouseover', '.nub', handleMouseoverNub);
+	$('body').on('mouseout', '.nub', handleMouseoutNub);
 }
 
 function handleRegionClick(event){
@@ -10232,6 +10385,28 @@ function handleNubClick(event){
 	]);
 }
 
+function handleTileTypeClick(event){
+	$('body').trigger('TILE_TYPE_CLICKED', [
+		$(this).data('id')
+	]);
+}
+
+function handleMouseoverNub(event){
+	$('body').trigger('NUB_MOUSEOVER', [
+		+$(this).data('x'),
+		+$(this).data('y'),
+		+$(this).data('o')
+	]);
+}
+
+function handleMouseoutNub(event){
+	$('body').trigger('NUB_MOUSEOUT', [
+		+$(this).data('x'),
+		+$(this).data('y'),
+		+$(this).data('o')
+	]);
+}
+
 function center(){
 	width = $(window).innerWidth();
 	height = $(window).innerHeight();
@@ -10243,18 +10418,36 @@ function center(){
 	});
 }
 
+Renderer.prototype.renderTileTypes = function(tiles){
+	for (var i = 0; i < tiles.length; i++) {
+		var tile = tiles[i];
+
+		var tileTypeGroup = tileTypesGroup.append("g")
+		.attr("class", "tile-type")
+		.attr("data-id", tile.ports.id)
+		.attr("transform", "translate({0},{1}) rotate(90)".format(80, 70 + (i*3.25*scale)))
+
+
+		this.renderTile(tile, tileTypeGroup);
+	};
+}
+
 Renderer.prototype.render = function(game){
+	tilesGroup.selectAll("*").remove();
+
 	var game = game;
 	var tiles = game.getTiles();
 
 	for (var i = tiles.length - 1; i >= 0; i--) {
 		var tile = tiles[i];
 
-		this.renderTile(tile)
+		this.renderTile(tile, tilesGroup)
 	};
 }
 
 Renderer.prototype.renderNubs = function(nubs){
+	nubsGroup.selectAll("*").remove();
+
 	for (var i = nubs.length - 1; i >= 0; i--) {
 		var nub = nubs[i];
 
@@ -10263,9 +10456,8 @@ Renderer.prototype.renderNubs = function(nubs){
 }
 
 Renderer.prototype.renderNub = function(tile){
-
-	tileGroup = tilesGroup.append('g')
-	.attr('class', 'nub')
+	var nubGroup = nubsGroup.append('g')
+	.classed('nub', true)
 	.attr('data-x', tile.x)
 	.attr('data-y', tile.y)
 	.attr('data-o', tile.orientation.index)
@@ -10278,15 +10470,25 @@ Renderer.prototype.renderNub = function(tile){
 		)
 	);
 
-	tileGroup.append('polygon')
-	.attr('class', 'triangle')
+	nubGroup.append('polygon')
+	.classed('triangle', true)
 	.attr('points', trianglePoints);
 }
 
-Renderer.prototype.renderTile = function(tile){
+Renderer.prototype.renderPreviewTile = function(tile){
 
-	tileGroup = tilesGroup.append('g')
-	.attr('class', 'tile')
+	tilePreviewGroup.selectAll("*").remove();
+
+	if(!tile) return;
+	
+	this.renderTile(tile, tilePreviewGroup)
+	.classed('preview', true);
+}
+
+Renderer.prototype.renderTile = function(tile, group){
+
+	var tileGroup = group.append('g')
+	.classed('tile', true)
 	.attr('data-id', tile.id)
 	.attr('transform',
 		'translate({0},{1}) rotate({2})'
@@ -10298,11 +10500,11 @@ Renderer.prototype.renderTile = function(tile){
 	);
 
 	tileGroup.append('polygon')
-	.attr('class', 'triangle')
+	.classed('triangle', true)
 	.attr('points', trianglePoints);
 
 	tileGroup.append('image')
-	.attr('class', 'tile-img tile-img-' + tile.ports.id.toLowerCase())
+	.classed('tile-img tile-img-' + tile.ports.id.toLowerCase(), true)
 	.attr('xlink:href', 'media/'+ tile.ports.id.toLowerCase()+'.png')
 	.attr('width', '200px')
 	.attr('height', '167px');
@@ -10312,7 +10514,7 @@ Renderer.prototype.renderTile = function(tile){
 	if(regions.indexOf(1) >= 0){
 		//center
 		tileGroup.append('g')
-		.attr('class', 'region')
+		.classed('region', true)
 		.attr('data-id', 1)
 		.attr('transform', 'translate({0},{1})'.format(
 			scale*0,
@@ -10325,7 +10527,7 @@ Renderer.prototype.renderTile = function(tile){
 	if(regions.indexOf(2) >= 0){
 		//bottom right
 		tileGroup.append('g')
-		.attr('class', 'region')
+		.classed('region', true)
 		.attr('data-id', 2)
 		.attr('transform', 'translate({0},{1})'.format(
 			scale*d2*.25,
@@ -10338,7 +10540,7 @@ Renderer.prototype.renderTile = function(tile){
 	if(regions.indexOf(3) >= 0){
 		//left
 		tileGroup.append('g')
-		.attr('class', 'region')
+		.classed('region', true)
 		.attr('data-id', 3)
 		.attr('transform', 'translate({0},{1})'.format(
 			scale*d2*-.5,
@@ -10351,7 +10553,7 @@ Renderer.prototype.renderTile = function(tile){
 	if(regions.indexOf(4) >= 0){
 		//top right
 		tileGroup.append('g')
-		.attr('class', 'region')
+		.classed('region', true)
 		.attr('data-id', 4)
 		.attr('transform', 'translate({0},{1})'.format(
 			scale*d2*.25,
@@ -10364,7 +10566,7 @@ Renderer.prototype.renderTile = function(tile){
 	if(regions.indexOf(5) >= 0){
 		//right
 		tileGroup.append('g')
-		.attr('class', 'region')
+		.classed('region', true)
 		.attr('data-id', 5)
 		.attr('transform', 'translate({0},{1})'.format(
 			scale*d2*.25,
@@ -10373,6 +10575,8 @@ Renderer.prototype.renderTile = function(tile){
 		.append('circle')
 		.attr('r', .2*scale);
 	}
+
+	return tileGroup;
 }
 
 Renderer.prototype.highlight = highlight;

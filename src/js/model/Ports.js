@@ -1,6 +1,6 @@
 var Orientation = require('./Orientation.js');
 
-Ports.O3 = new Ports('o3', [
+Ports.O3 = new Ports('O3', [
 	0, 1, 0,
 	0, 0, 0,
 	0, 1, 0,
@@ -9,7 +9,7 @@ Ports.O3 = new Ports('o3', [
 	0, 0, 0
 ]);
 
-Ports.O2 = new Ports('o2', [
+Ports.O2 = new Ports('O2', [
 	1, 0, 1,
 	0, 0, 0,
 	0, 1, 0,
@@ -18,7 +18,7 @@ Ports.O2 = new Ports('o2', [
 	0, 0, 0
 ]);
 
-Ports.O1 = new Ports('o1', [
+Ports.O1 = new Ports('O1', [
 	0, 1, 0,
 	0, 0, 0,
 	1, 0, 1,
@@ -27,7 +27,7 @@ Ports.O1 = new Ports('o1', [
 	0, 0, 0
 ]);
 
-Ports.C3 = new Ports('c3', [
+Ports.C3 = new Ports('C3', [
 	4, 0, 2,
 	0, 0, 0,
 	2, 0, 3,
@@ -36,7 +36,7 @@ Ports.C3 = new Ports('c3', [
 	0, 0, 0
 ]);
 
-Ports.C2 = new Ports('c2', [
+Ports.C2 = new Ports('C2', [
 	0, 5, 0,
 	0, 0, 0,
 	5, 0, 3,
@@ -45,7 +45,7 @@ Ports.C2 = new Ports('c2', [
 	0, 0, 0
 ]);
 
-Ports.C1 = new Ports('c1', [
+Ports.C1 = new Ports('C1', [
 	4, 0, 2,
 	0, 0, 0,
 	0, 2, 0,
@@ -82,7 +82,7 @@ Ports.prototype.getIndices = function(index){
 		if(index === item){
 			indices.push(i)
 		}
-	})
+	});
 
 	return indices
 }
