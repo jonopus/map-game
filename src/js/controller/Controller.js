@@ -68,32 +68,43 @@ function renderGame(liberties, captures){
 }
 
 function handleNubClicked(event, x, y, o){
-	console.log('handleNubClicked', x, y);
-
 	var misMatches = Grid.getMisMatches(tiles, regions, previewTile)
 	if(misMatches.length === 0){
-		renderer.selectNub(x, y);
 		game.setNextTile(previewTile);
+		renderer.selectNub(previewTile.x, previewTile.y);
 		update();
 		renderGame();
+	}else{
+		renderer.highlightNub(x, y);
 	}
 }
 
 function handleTileTypeClicked(event, id){
+	renderer.selectTileType(id)
 	tileTypeId = id;
 
+	update();
+
+	console.log('handleTileTypeClicked');
+
 	if(previewTile){
+		
 		previewTile.ports = Ports[tileTypeId]
 		var validOrientations = Grid.getValidOrientations(tiles, regions, previewTile)
 		previewTile.orientation = validOrientations[0] || previewTile.orientation;
-		
-		if(!validOrientations.length){
-			previewTile = null
-		}
+		var misMatches = Grid.getMisMatches(tiles, regions, previewTile)
 
-		renderGame();
-		renderer.renderNubs(Grid.getNubs(tiles, regions));
-		renderer.renderPreviewTile(previewTile);
+		if(misMatches.length === 0){
+			if(!validOrientations.length){
+				previewTile = null
+			}
+
+			renderGame();
+			renderer.renderPreviewTile(previewTile);
+		}else{
+			renderer.selectNub();
+			renderer.highlightNub(previewTile.x, previewTile.y);
+		}
 	}
 }
 
@@ -107,6 +118,7 @@ function handleRotateClicked(event, id){
 
 function handleNubMouseout(event, x, y, o){
 	renderer.renderPreviewTile(previewTile = game.getNextTile(), true);
+	renderer.selectNub(previewTile.x, previewTile.y);
 }
 
 function handleNubMouseover(event, x, y, o){
@@ -115,10 +127,17 @@ function handleNubMouseover(event, x, y, o){
 	var tile = new Tile(x, y, Ports[tileTypeId], Orientation.get(o));
 	tile.orientation = Grid.getValidOrientations(tiles, regions, tile)[0] || tile.orientation;
 	renderer.renderPreviewTile(previewTile = tile);
+	renderer.selectNub();
+
+	renderGame();
 }
 
 function handleRegionClicked(event, tileId, regionId){
-	console.log('handleRegionClicked');
+	
+	if(!game.getNextTile()){
+		return;
+	}
+
 	update(game.getNextTile());
 	
 	var region = Grid.getRegion(regions, tileId, regionId);
@@ -127,6 +146,7 @@ function handleRegionClicked(event, tileId, regionId){
 
 	if(liberties.length || captures.length) {
 		game.addNextTile();
+		previewTile = null;
 		game.removeClaims(captures);
 		player.addClaim(region);
 		claims.push(region);

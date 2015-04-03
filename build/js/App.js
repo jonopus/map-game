@@ -9581,32 +9581,43 @@ function renderGame(liberties, captures){
 }
 
 function handleNubClicked(event, x, y, o){
-	console.log('handleNubClicked', x, y);
-
 	var misMatches = Grid.getMisMatches(tiles, regions, previewTile)
 	if(misMatches.length === 0){
-		renderer.selectNub(x, y);
 		game.setNextTile(previewTile);
+		renderer.selectNub(previewTile.x, previewTile.y);
 		update();
 		renderGame();
+	}else{
+		renderer.highlightNub(x, y);
 	}
 }
 
 function handleTileTypeClicked(event, id){
+	renderer.selectTileType(id)
 	tileTypeId = id;
 
+	update();
+
+	console.log('handleTileTypeClicked');
+
 	if(previewTile){
+		
 		previewTile.ports = Ports[tileTypeId]
 		var validOrientations = Grid.getValidOrientations(tiles, regions, previewTile)
 		previewTile.orientation = validOrientations[0] || previewTile.orientation;
-		
-		if(!validOrientations.length){
-			previewTile = null
-		}
+		var misMatches = Grid.getMisMatches(tiles, regions, previewTile)
 
-		renderGame();
-		renderer.renderNubs(Grid.getNubs(tiles, regions));
-		renderer.renderPreviewTile(previewTile);
+		if(misMatches.length === 0){
+			if(!validOrientations.length){
+				previewTile = null
+			}
+
+			renderGame();
+			renderer.renderPreviewTile(previewTile);
+		}else{
+			renderer.selectNub();
+			renderer.highlightNub(previewTile.x, previewTile.y);
+		}
 	}
 }
 
@@ -9620,6 +9631,7 @@ function handleRotateClicked(event, id){
 
 function handleNubMouseout(event, x, y, o){
 	renderer.renderPreviewTile(previewTile = game.getNextTile(), true);
+	renderer.selectNub(previewTile.x, previewTile.y);
 }
 
 function handleNubMouseover(event, x, y, o){
@@ -9628,10 +9640,17 @@ function handleNubMouseover(event, x, y, o){
 	var tile = new Tile(x, y, Ports[tileTypeId], Orientation.get(o));
 	tile.orientation = Grid.getValidOrientations(tiles, regions, tile)[0] || tile.orientation;
 	renderer.renderPreviewTile(previewTile = tile);
+	renderer.selectNub();
+
+	renderGame();
 }
 
 function handleRegionClicked(event, tileId, regionId){
-	console.log('handleRegionClicked');
+	
+	if(!game.getNextTile()){
+		return;
+	}
+
 	update(game.getNextTile());
 	
 	var region = Grid.getRegion(regions, tileId, regionId);
@@ -9640,6 +9659,7 @@ function handleRegionClicked(event, tileId, regionId){
 
 	if(liberties.length || captures.length) {
 		game.addNextTile();
+		previewTile = null;
 		game.removeClaims(captures);
 		player.addClaim(region);
 		claims.push(region);
@@ -9654,7 +9674,7 @@ function handleRegionClicked(event, tileId, regionId){
 
 
 
-},{"../model/Game.js":5,"../model/Grid.js":6,"../model/Orientation.js":7,"../model/Player.js":8,"../model/Ports.js":9,"../model/Tile.js":10,"../view/Renderer.js":11}],4:[function(require,module,exports){
+},{"../model/Game.js":6,"../model/Grid.js":7,"../model/Orientation.js":8,"../model/Player.js":9,"../model/Ports.js":10,"../model/Tile.js":11,"../view/Renderer.js":12}],4:[function(require,module,exports){
 if (!String.prototype.format) {
 	String.prototype.format = function() {
 		var args = arguments;
@@ -9677,6 +9697,177 @@ if (!String.format) {
 	};
 }
 },{}],5:[function(require,module,exports){
+/*****************************************************************************
+*                                                                            *
+*  SVG Path Rounding Function                                                *
+*  Copyright (C) 2014 Yona Appletree                                         *
+*                                                                            *
+*  Licensed under the Apache License, Version 2.0 (the "License");           *
+*  you may not use this file except in compliance with the License.          *
+*  You may obtain a copy of the License at                                   *
+*                                                                            *
+*      http://www.apache.org/licenses/LICENSE-2.0                            *
+*                                                                            *
+*  Unless required by applicable law or agreed to in writing, software       *
+*  distributed under the License is distributed on an "AS IS" BASIS,         *
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  *
+*  See the License for the specific language governing permissions and       *
+*  limitations under the License.                                            *
+*                                                                            *
+*****************************************************************************/
+
+/**
+ * SVG Path rounding function. Takes an input path string and outputs a path
+ * string where all line-line corners have been rounded. Only supports absolute
+ * commands at the moment.
+ * 
+ * @param pathString The SVG input path
+ * @param radius The amount to round the corners, either a value in the SVG 
+ *               coordinate space, or, if useFractionalRadius is true, a value
+ *               from 0 to 1.
+ * @param useFractionalRadius If true, the curve radius is expressed as a
+ *               fraction of the distance between the point being curved and
+ *               the previous and next points.
+ * @returns A new SVG path string with the rounding
+ */
+module.exports = roundPathCorners;
+function roundPathCorners(pathString, radius, useFractionalRadius) {
+  function moveTowardsLength(movingPoint, targetPoint, amount) {
+    var width = (targetPoint.x - movingPoint.x);
+    var height = (targetPoint.y - movingPoint.y);
+    
+    var distance = Math.sqrt(width*width + height*height);
+    
+    return moveTowardsFractional(movingPoint, targetPoint, Math.min(1, amount / distance));
+  }
+  function moveTowardsFractional(movingPoint, targetPoint, fraction) {
+    return {
+      x: movingPoint.x + (targetPoint.x - movingPoint.x)*fraction,
+      y: movingPoint.y + (targetPoint.y - movingPoint.y)*fraction
+    };
+  }
+  
+  // Adjusts the ending position of a command
+  function adjustCommand(cmd, newPoint) {
+    if (cmd.length > 2) {
+      cmd[cmd.length - 2] = newPoint.x;
+      cmd[cmd.length - 1] = newPoint.y;
+    }
+  }
+  
+  // Gives an {x, y} object for a command's ending position
+  function pointForCommand(cmd) {
+    return {
+      x: parseFloat(cmd[cmd.length - 2]),
+      y: parseFloat(cmd[cmd.length - 1]),
+    };
+  }
+  
+  // Split apart the path, handing concatonated letters and numbers
+  var pathParts = pathString
+    .split(/[,\s]/)
+    .reduce(function(parts, part){
+      var match = part.match("([a-zA-Z])(.+)");
+      if (match) {
+        parts.push(match[1]);
+        parts.push(match[2]);
+      } else {
+        parts.push(part);
+      }
+      
+      return parts;
+    }, []);
+  
+  // Group the commands with their arguments for easier handling
+  var commands = pathParts.reduce(function(commands, part) {
+    if (parseFloat(part) == part && commands.length) {
+      commands[commands.length - 1].push(part);
+    } else {
+      commands.push([part]);
+    }
+    
+    return commands;
+  }, []);
+  
+  // The resulting commands, also grouped
+  var resultCommands = [];
+  
+  if (commands.length > 1) {
+    var startPoint = pointForCommand(commands[0]);
+    
+    // Handle the close path case with a "virtual" closing line
+    var virtualCloseLine = null;
+    if (commands[commands.length - 1][0] == "Z" && commands[0].length > 2) {
+      virtualCloseLine = ["L", startPoint.x, startPoint.y];
+      commands[commands.length - 1] = virtualCloseLine;
+    }
+    
+    // We always use the first command (but it may be mutated)
+    resultCommands.push(commands[0]);
+    
+    for (var cmdIndex=1; cmdIndex < commands.length; cmdIndex++) {
+      var prevCmd = resultCommands[resultCommands.length - 1];
+      
+      var curCmd = commands[cmdIndex];
+      
+      // Handle closing case
+      var nextCmd = (curCmd == virtualCloseLine)
+        ? commands[1]
+        : commands[cmdIndex + 1];
+      
+      // Nasty logic to decide if this path is a candidite.
+      if (nextCmd && prevCmd && (prevCmd.length > 2) && curCmd[0] == "L" && nextCmd.length > 2 && nextCmd[0] == "L") {
+        // Calc the points we're dealing with
+        var prevPoint = pointForCommand(prevCmd);
+        var curPoint = pointForCommand(curCmd);
+        var nextPoint = pointForCommand(nextCmd);
+        
+        // The start and end of the cuve are just our point moved towards the previous and next points, respectivly
+        var curveStart, curveEnd;
+        
+        if (useFractionalRadius) {
+          curveStart = moveTowardsFractional(curPoint, prevCmd.origPoint || prevPoint, radius);
+          curveEnd = moveTowardsFractional(curPoint, nextCmd.origPoint || nextPoint, radius);
+        } else {
+          curveStart = moveTowardsLength(curPoint, prevPoint, radius);
+          curveEnd = moveTowardsLength(curPoint, nextPoint, radius);
+        }
+        
+        // Adjust the current command and add it
+        adjustCommand(curCmd, curveStart);
+        curCmd.origPoint = curPoint;
+        resultCommands.push(curCmd);
+        
+        // The curve control points are halfway between the start/end of the curve and
+        // the original point
+        var startControl = moveTowardsFractional(curveStart, curPoint, .5);
+        var endControl = moveTowardsFractional(curPoint, curveEnd, .5);
+  
+        // Create the curve 
+        var curveCmd = ["C", startControl.x, startControl.y, endControl.x, endControl.y, curveEnd.x, curveEnd.y];
+        // Save the original point for fractional calculations
+        curveCmd.origPoint = curPoint;
+        resultCommands.push(curveCmd);
+      } else {
+        // Pass through commands that don't qualify
+        resultCommands.push(curCmd);
+      }
+    }
+    
+    // Fix up the starting point and restore the close path if the path was orignally closed
+    if (virtualCloseLine) {
+      var newStartPoint = pointForCommand(resultCommands[resultCommands.length-1]);
+      resultCommands.push(["Z"]);
+      adjustCommand(resultCommands[0], newStartPoint);
+    }
+  } else {
+    resultCommands = commands;
+  }
+  
+  return resultCommands.reduce(function(str, c){ return str + c.join(" ") + " "; }, "");
+}
+
+},{}],6:[function(require,module,exports){
 var Orientation = require('./Orientation.js');
 var Tile = require('./Tile.js');
 
@@ -9768,7 +9959,7 @@ Game.prototype.removeClaims = function(captures){
 	};
 }
 
-},{"./Orientation.js":7,"./Tile.js":10}],6:[function(require,module,exports){
+},{"./Orientation.js":8,"./Tile.js":11}],7:[function(require,module,exports){
 var Orientation = require('./Orientation.js');
 var Tile = require('./Tile.js');
 var Ports = require('./Ports.js');
@@ -10075,7 +10266,7 @@ Grid.search = function(regions, filter, traverse, region, vector, lastRegion, lo
 	return results;
 }
 
-},{"./Orientation.js":7,"./Ports.js":9,"./Tile.js":10}],7:[function(require,module,exports){
+},{"./Orientation.js":8,"./Ports.js":10,"./Tile.js":11}],8:[function(require,module,exports){
 module.exports = Orientation;
 function Orientation(index, angle, vector, offset){
 	this.index = index;
@@ -10173,7 +10364,7 @@ function rotatePoint(point, orientation){
 
 	return {x:_x, y:-_x-_z};
 }
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 var count = 0;
 
 module.exports = Player;
@@ -10209,7 +10400,7 @@ Player.prototype.addClaim = function(region){
 Player.prototype.getClaims = function(){
 	return this.claims;
 }
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 var Orientation = require('./Orientation.js');
 
 Ports.O3 = new Ports('O3', [
@@ -10298,7 +10489,7 @@ Ports.prototype.getIndices = function(index){
 
 	return indices
 }
-},{"./Orientation.js":7}],10:[function(require,module,exports){
+},{"./Orientation.js":8}],11:[function(require,module,exports){
 var Ports = require('./Ports.js');
 var Orientation = require('./Orientation.js');
 
@@ -10346,9 +10537,10 @@ Tile.getTileTypes = function(){
 	return Tile.TILE_TYPES;
 }
 
-},{"./Orientation.js":7,"./Ports.js":9}],11:[function(require,module,exports){
+},{"./Orientation.js":8,"./Ports.js":10}],12:[function(require,module,exports){
 var d3 = require('d3');
 var Orientation = require('../model/Orientation.js');
+var svgRound = require('../lib/svg.round.js');
 
 var svg;
 var mainGroup;
@@ -10357,6 +10549,7 @@ var nubsGroup;
 var tilesGroup;
 var tilePreviewGroup;
 var rotateButton;
+var previewTile;
 
 var scale = 40;
 var d2 = Math.sqrt(3);
@@ -10373,6 +10566,15 @@ var trianglePoints = $.map(triangle, function(d) {
 		d.y
 	].join(',');
 }).join(' ');
+
+var roundedTrianglePath = 'M ' + $.map(triangle, function(d) {
+	return [
+		d.x,
+		d.y
+	].join(' ');
+}).join(' L') + ' Z';
+
+roundedTrianglePath = svgRound(roundedTrianglePath, .075, true);
 
 var hexagon = [
 	{x:scale*d2*.5,		y:scale*-.5},
@@ -10412,10 +10614,10 @@ function Renderer() {
 	
 	tileTypesGroup = svg.append('g')
 	.classed('tile-types-group', true);
-	nubsGroup = mainGroup.append('g')
-	.classed('nubs-group', true);
 	tilesGroup = mainGroup.append('g')
 	.classed('tiles-group', true);
+	nubsGroup = mainGroup.append('g')
+	.classed('nubs-group', true);
 	tilePreviewGroup = mainGroup.append('g')
 	.classed('preview-group', true);
 
@@ -10424,8 +10626,8 @@ function Renderer() {
 
 	$('body').on('click', '.tile .region', handleRegionClick);
 	$('body').on('click', '.nub', handleNubClick);
-	$('body').on('click', '.tile-type', handleTileTypeClick);
 	$('body').on('click', '.rotate-button', handleRotateClick);
+	$('body').on('click', '.tile-type', handleTileTypeClick);
 	$('body').on('mouseover', '.nub', handleMouseoverNub);
 	$('body').on('mouseout', '.nub', handleMouseoutNub);
 }
@@ -10445,14 +10647,14 @@ function handleNubClick(event){
 	]);
 }
 
+function handleRotateClick(event){
+	$('body').trigger('ROTATE_CLICKED');
+}
+
 function handleTileTypeClick(event){
 	$('body').trigger('TILE_TYPE_CLICKED', [
 		$(this).data('id')
 	]);
-}
-
-function handleRotateClick(event){
-	$('body').trigger('ROTATE_CLICKED');
 }
 
 function handleMouseoverNub(event){
@@ -10499,6 +10701,14 @@ Renderer.prototype.renderTileTypes = function(tiles){
 	};
 }
 
+Renderer.prototype.selectTileType = function(id){
+	var className = 'selected';
+	d3.select('.tile-type.'+className).classed(className, false);
+	
+	var selector = '.tile-type[data-id="{0}"]'.format(id);
+	d3.select(selector).classed(className, true);
+}
+
 Renderer.prototype.render = function(tiles){
 	tilesGroup.selectAll("*").remove();
 
@@ -10537,24 +10747,28 @@ Renderer.prototype.renderNub = function(tile){
 	nubGroup.append('polygon')
 	.classed('triangle', true)
 	.attr('points', trianglePoints);
+
+	nubGroup.append('path')
+	.classed('outline', true)
+	.attr('d', roundedTrianglePath);
 }
 
 Renderer.prototype.selectNub = function(x, y){
-	var className = 'selected'
-
-	$('.'+className)
-	.attr("class", function(index, classNames) {
-		return classNames.replace(className, '');
-	});
-
-	var selector = '.nub[data-x="{0}"][data-y="{1}"]'.format(x, y);
-
-	console.log('selector', $(selector));
+	var className = 'selected';
+	d3.select('.nub.'+className).classed(className, false);
 	
-	$(selector)
-	.attr("class", function(index, classNames) {
-		return classNames + ' ' + className;
-	});
+	var selector = '.nub[data-x="{0}"][data-y="{1}"]'.format(x, y);
+	d3.select(selector).classed(className, true);
+}
+
+Renderer.prototype.highlightNub = function(x, y){
+	var className = 'error';
+	d3.select('.nub.'+className).classed(className, false);
+	
+	var selector = '.nub[data-x="{0}"][data-y="{1}"]'.format(x, y);
+	d3.select(selector).classed(className, true);
+
+	setTimeout(this.highlightNub, 1000);
 }
 
 Renderer.prototype.renderPreviewTile = function(tile, useTilesGroup){
@@ -10562,13 +10776,14 @@ Renderer.prototype.renderPreviewTile = function(tile, useTilesGroup){
 
 	if(!tile) return;
 
+
 	var group = tilePreviewGroup;
 
 	if(useTilesGroup){
 		group = tilesGroup
 	}
 	
-	this.renderTile(tile, group)
+	previewTile = this.renderTile(tile, group)
 	.classed('preview');
 }
 
@@ -10684,4 +10899,4 @@ function highlight(regions, className){
 		});
 	};
 }
-},{"../model/Orientation.js":7,"d3":1}]},{},[2]);
+},{"../lib/svg.round.js":5,"../model/Orientation.js":8,"d3":1}]},{},[2]);

@@ -1,5 +1,6 @@
 var d3 = require('d3');
 var Orientation = require('../model/Orientation.js');
+var svgRound = require('../lib/svg.round.js');
 
 var svg;
 var mainGroup;
@@ -8,6 +9,7 @@ var nubsGroup;
 var tilesGroup;
 var tilePreviewGroup;
 var rotateButton;
+var previewTile;
 
 var scale = 40;
 var d2 = Math.sqrt(3);
@@ -24,6 +26,15 @@ var trianglePoints = $.map(triangle, function(d) {
 		d.y
 	].join(',');
 }).join(' ');
+
+var roundedTrianglePath = 'M ' + $.map(triangle, function(d) {
+	return [
+		d.x,
+		d.y
+	].join(' ');
+}).join(' L') + ' Z';
+
+roundedTrianglePath = svgRound(roundedTrianglePath, .075, true);
 
 var hexagon = [
 	{x:scale*d2*.5,		y:scale*-.5},
@@ -63,10 +74,10 @@ function Renderer() {
 	
 	tileTypesGroup = svg.append('g')
 	.classed('tile-types-group', true);
-	nubsGroup = mainGroup.append('g')
-	.classed('nubs-group', true);
 	tilesGroup = mainGroup.append('g')
 	.classed('tiles-group', true);
+	nubsGroup = mainGroup.append('g')
+	.classed('nubs-group', true);
 	tilePreviewGroup = mainGroup.append('g')
 	.classed('preview-group', true);
 
@@ -75,8 +86,8 @@ function Renderer() {
 
 	$('body').on('click', '.tile .region', handleRegionClick);
 	$('body').on('click', '.nub', handleNubClick);
-	$('body').on('click', '.tile-type', handleTileTypeClick);
 	$('body').on('click', '.rotate-button', handleRotateClick);
+	$('body').on('click', '.tile-type', handleTileTypeClick);
 	$('body').on('mouseover', '.nub', handleMouseoverNub);
 	$('body').on('mouseout', '.nub', handleMouseoutNub);
 }
@@ -96,14 +107,14 @@ function handleNubClick(event){
 	]);
 }
 
+function handleRotateClick(event){
+	$('body').trigger('ROTATE_CLICKED');
+}
+
 function handleTileTypeClick(event){
 	$('body').trigger('TILE_TYPE_CLICKED', [
 		$(this).data('id')
 	]);
-}
-
-function handleRotateClick(event){
-	$('body').trigger('ROTATE_CLICKED');
 }
 
 function handleMouseoverNub(event){
@@ -150,6 +161,14 @@ Renderer.prototype.renderTileTypes = function(tiles){
 	};
 }
 
+Renderer.prototype.selectTileType = function(id){
+	var className = 'selected';
+	d3.select('.tile-type.'+className).classed(className, false);
+	
+	var selector = '.tile-type[data-id="{0}"]'.format(id);
+	d3.select(selector).classed(className, true);
+}
+
 Renderer.prototype.render = function(tiles){
 	tilesGroup.selectAll("*").remove();
 
@@ -188,24 +207,28 @@ Renderer.prototype.renderNub = function(tile){
 	nubGroup.append('polygon')
 	.classed('triangle', true)
 	.attr('points', trianglePoints);
+
+	nubGroup.append('path')
+	.classed('outline', true)
+	.attr('d', roundedTrianglePath);
 }
 
 Renderer.prototype.selectNub = function(x, y){
-	var className = 'selected'
-
-	$('.'+className)
-	.attr("class", function(index, classNames) {
-		return classNames.replace(className, '');
-	});
-
-	var selector = '.nub[data-x="{0}"][data-y="{1}"]'.format(x, y);
-
-	console.log('selector', $(selector));
+	var className = 'selected';
+	d3.select('.nub.'+className).classed(className, false);
 	
-	$(selector)
-	.attr("class", function(index, classNames) {
-		return classNames + ' ' + className;
-	});
+	var selector = '.nub[data-x="{0}"][data-y="{1}"]'.format(x, y);
+	d3.select(selector).classed(className, true);
+}
+
+Renderer.prototype.highlightNub = function(x, y){
+	var className = 'error';
+	d3.select('.nub.'+className).classed(className, false);
+	
+	var selector = '.nub[data-x="{0}"][data-y="{1}"]'.format(x, y);
+	d3.select(selector).classed(className, true);
+
+	setTimeout(this.highlightNub, 1000);
 }
 
 Renderer.prototype.renderPreviewTile = function(tile, useTilesGroup){
@@ -213,13 +236,14 @@ Renderer.prototype.renderPreviewTile = function(tile, useTilesGroup){
 
 	if(!tile) return;
 
+
 	var group = tilePreviewGroup;
 
 	if(useTilesGroup){
 		group = tilesGroup
 	}
 	
-	this.renderTile(tile, group)
+	previewTile = this.renderTile(tile, group)
 	.classed('preview');
 }
 
