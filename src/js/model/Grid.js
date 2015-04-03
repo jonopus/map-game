@@ -37,6 +37,27 @@ Grid.getTileAt = function(tiles, vector){
 	})[0];
 }
 
+Grid.getValidOrientations = function(tiles, regions, tile){
+	var tries = 0;
+	var misMatches;
+	var testTile = new Tile(tile.x, tile.y, tile.ports, tile.orientation);
+	var validOrientations = [];
+
+	while(
+		(++tries <= 3)
+	){
+		misMatches = Grid.getMisMatches(tiles, regions, testTile);
+
+		if(misMatches.length === 0){
+			validOrientations.push(testTile.orientation);
+		}
+		
+		testTile.orientation = testTile.orientation.getAt(2);
+	}
+
+	return validOrientations
+}
+
 Grid.getRegionAtVector = function(tiles, regions, tile, vector){
 	if(!tile){
 		return

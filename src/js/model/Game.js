@@ -1,11 +1,26 @@
 var Orientation = require('./Orientation.js');
 var Tile = require('./Tile.js');
 
+var nextTile;
+
 module.exports = Game;
 function Game() {
 	this.tiles = [];
 	this.players = [];
 	this.claims = [];
+}
+
+Game.prototype.setNextTile = function(tile){
+	nextTile = tile
+}
+
+Game.prototype.getNextTile = function(){
+	return nextTile;
+}
+
+Game.prototype.addNextTile = function(){
+	this.addTile(nextTile);
+	nextTile = null;
 }
 
 Game.prototype.addTile = function(tile){
@@ -14,8 +29,8 @@ Game.prototype.addTile = function(tile){
 	}
 }
 
-Game.prototype.getTiles = function(){
-	return this.tiles;
+Game.prototype.getTiles = function(usePreview){
+	return this.tiles.concat(nextTile && usePreview ? [nextTile] : []);
 }
 
 Game.prototype.addPlayer = function(player){

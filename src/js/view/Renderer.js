@@ -7,6 +7,7 @@ var tileTypesGroup;
 var nubsGroup;
 var tilesGroup;
 var tilePreviewGroup;
+var rotateButton;
 
 var scale = 40;
 var d2 = Math.sqrt(3);
@@ -53,19 +54,29 @@ function Renderer() {
 	.attr('cx', 0)
 	.attr('cy', 0)
 	.attr('r', .2*scale);
+
+	rotateButton = svg.append('circle')
+	.classed('rotate-button', true)
+	.attr('cx', 0)
+	.attr('cy', 0)
+	.attr('r', 1*scale);
 	
-	tileTypesGroup = svg.append('g');
-	nubsGroup = mainGroup.append('g');
-	tilesGroup = mainGroup.append('g');
-	tilePreviewGroup = mainGroup.append('g');
+	tileTypesGroup = svg.append('g')
+	.classed('tile-types-group', true);
+	nubsGroup = mainGroup.append('g')
+	.classed('nubs-group', true);
+	tilesGroup = mainGroup.append('g')
+	.classed('tiles-group', true);
+	tilePreviewGroup = mainGroup.append('g')
+	.classed('preview-group', true);
 
 	$(window).on('resize', center);
 	center();
 
 	$('body').on('click', '.tile .region', handleRegionClick);
 	$('body').on('click', '.nub', handleNubClick);
-	$('body').on('click', '.nub', handleNubClick);
 	$('body').on('click', '.tile-type', handleTileTypeClick);
+	$('body').on('click', '.rotate-button', handleRotateClick);
 	$('body').on('mouseover', '.nub', handleMouseoverNub);
 	$('body').on('mouseout', '.nub', handleMouseoutNub);
 }
@@ -89,6 +100,10 @@ function handleTileTypeClick(event){
 	$('body').trigger('TILE_TYPE_CLICKED', [
 		$(this).data('id')
 	]);
+}
+
+function handleRotateClick(event){
+	$('body').trigger('ROTATE_CLICKED');
 }
 
 function handleMouseoverNub(event){
@@ -116,6 +131,9 @@ function center(){
 		width: width,
 		height: height
 	});
+
+	rotateButton.attr('transform', 'translate({0},{1})'.format(width-(2*scale), (2*scale)));
+
 }
 
 Renderer.prototype.renderTileTypes = function(tiles){
@@ -132,11 +150,8 @@ Renderer.prototype.renderTileTypes = function(tiles){
 	};
 }
 
-Renderer.prototype.render = function(game){
+Renderer.prototype.render = function(tiles){
 	tilesGroup.selectAll("*").remove();
-
-	var game = game;
-	var tiles = game.getTiles();
 
 	for (var i = tiles.length - 1; i >= 0; i--) {
 		var tile = tiles[i];
@@ -175,14 +190,37 @@ Renderer.prototype.renderNub = function(tile){
 	.attr('points', trianglePoints);
 }
 
-Renderer.prototype.renderPreviewTile = function(tile){
+Renderer.prototype.selectNub = function(x, y){
+	var className = 'selected'
 
+	$('.'+className)
+	.attr("class", function(index, classNames) {
+		return classNames.replace(className, '');
+	});
+
+	var selector = '.nub[data-x="{0}"][data-y="{1}"]'.format(x, y);
+
+	console.log('selector', $(selector));
+	
+	$(selector)
+	.attr("class", function(index, classNames) {
+		return classNames + ' ' + className;
+	});
+}
+
+Renderer.prototype.renderPreviewTile = function(tile, useTilesGroup){
 	tilePreviewGroup.selectAll("*").remove();
 
 	if(!tile) return;
+
+	var group = tilePreviewGroup;
+
+	if(useTilesGroup){
+		group = tilesGroup
+	}
 	
-	this.renderTile(tile, tilePreviewGroup)
-	.classed('preview', true);
+	this.renderTile(tile, group)
+	.classed('preview');
 }
 
 Renderer.prototype.renderTile = function(tile, group){

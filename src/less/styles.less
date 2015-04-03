@@ -5,6 +5,9 @@
 }
 
 .nub {
+	&.selected {
+		display: none;
+	}
 	cursor: pointer;
 }
 
@@ -33,9 +36,15 @@
 		display: none;
 	}
 }
+.preview-group {
+	pointer-events: none;
+}
 .tile {
 	&.preview {
 		pointer-events: none;
+	}
+	.triangle{
+		fill: gray;
 	}
 	.tile-img {
 		pointer-events: none;

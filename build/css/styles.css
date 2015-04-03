@@ -189,6 +189,9 @@ th {
 .nub {
   cursor: pointer;
 }
+.nub.selected {
+  display: none;
+}
 .tile-type {
   cursor: pointer;
 }
@@ -209,8 +212,14 @@ th {
 .tile-type .region {
   display: none;
 }
+.preview-group {
+  pointer-events: none;
+}
 .tile.preview {
   pointer-events: none;
+}
+.tile .triangle {
+  fill: gray;
 }
 .tile .tile-img {
   pointer-events: none;
