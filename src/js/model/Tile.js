@@ -8,8 +8,12 @@ function Tile(x, y, ports, orientation) {
 	this.id = ++tileCount;
 	this.x = x || 0;
 	this.y = y || 0;
-	this.ports = ports;
+	this.ports = ports || Ports.O3;
 	this.orientation = orientation || Orientation.XP;
+}
+
+Tile.prototype.clone = function(){
+	return new Tile(this.x, this.y, this.ports, this.orientation);
 }
 
 Tile.prototype.getPorts = function(){

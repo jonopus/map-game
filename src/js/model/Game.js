@@ -11,11 +11,11 @@ function Game() {
 }
 
 Game.prototype.setNextTile = function(tile){
-	nextTile = tile
+	nextTile = tile.clone()
 }
 
 Game.prototype.getNextTile = function(){
-	return nextTile;
+	return nextTile ? nextTile.clone() : undefined;
 }
 
 Game.prototype.addNextTile = function(){

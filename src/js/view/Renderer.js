@@ -244,7 +244,7 @@ Renderer.prototype.renderPreviewTile = function(tile, useTilesGroup){
 	}
 	
 	previewTile = this.renderTile(tile, group)
-	.classed('preview');
+	.classed('preview', true);
 }
 
 Renderer.prototype.renderTile = function(tile, group){

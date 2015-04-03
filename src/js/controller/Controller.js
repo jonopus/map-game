@@ -15,7 +15,7 @@ var player;
 var regions;
 var nubs;
 var tileTypeId = 'O3';
-var previewTile;
+var previewTile = new Tile();
 
 module.exports = Controller;
 function Controller() {
@@ -45,7 +45,7 @@ function Controller() {
 	renderGame();
 
 	renderer.renderTileTypes(Tile.getTileTypes());
-
+	renderer.selectTileType(tileTypeId)
 	renderer.renderNubs(Grid.getNubs(tiles, regions));
 }
 
@@ -80,30 +80,27 @@ function handleNubClicked(event, x, y, o){
 }
 
 function handleTileTypeClicked(event, id){
-	renderer.selectTileType(id)
-	tileTypeId = id;
+	renderer.selectTileType(tileTypeId = id)
 
 	update();
 
-	console.log('handleTileTypeClicked');
-
 	if(previewTile){
-		
-		previewTile.ports = Ports[tileTypeId]
+
+		previewTile.ports = Ports[tileTypeId];
+
 		var validOrientations = Grid.getValidOrientations(tiles, regions, previewTile)
 		previewTile.orientation = validOrientations[0] || previewTile.orientation;
 		var misMatches = Grid.getMisMatches(tiles, regions, previewTile)
 
-		if(misMatches.length === 0){
-			if(!validOrientations.length){
-				previewTile = null
-			}
-
+		if(misMatches.length === 0 && validOrientations.length){
+			game.setNextTile(previewTile);
+			update();
 			renderGame();
 			renderer.renderPreviewTile(previewTile);
 		}else{
-			renderer.selectNub();
+			renderer.selectNub(previewTile.x, previewTile.y);
 			renderer.highlightNub(previewTile.x, previewTile.y);
+			renderer.renderPreviewTile();
 		}
 	}
 }
@@ -117,19 +114,33 @@ function handleRotateClicked(event, id){
 }
 
 function handleNubMouseout(event, x, y, o){
-	renderer.renderPreviewTile(previewTile = game.getNextTile(), true);
-	renderer.selectNub(previewTile.x, previewTile.y);
+	var tile = game.getNextTile();
+	if(tile){
+		renderer.renderPreviewTile(tile, true);
+		renderer.selectNub(tile.x, tile.y);
+	}else{
+		renderer.renderPreviewTile();
+		renderer.selectNub();
+	}
 }
 
 function handleNubMouseover(event, x, y, o){
 	update();
 
-	var tile = new Tile(x, y, Ports[tileTypeId], Orientation.get(o));
-	tile.orientation = Grid.getValidOrientations(tiles, regions, tile)[0] || tile.orientation;
-	renderer.renderPreviewTile(previewTile = tile);
-	renderer.selectNub();
+	console.log('previewTile', previewTile);
 
-	renderGame();
+	previewTile.x = x;
+	previewTile.y = y;
+	previewTile.ports = Ports[tileTypeId];
+	previewTile.orientation = Orientation.get(o);
+
+	previewTile.orientation = Grid.getValidOrientations(tiles, regions, previewTile)[0] || previewTile.orientation;
+	if(previewTile.orientation){
+		renderer.renderPreviewTile(previewTile);
+		renderer.selectNub();
+
+		renderGame();
+	}
 }
 
 function handleRegionClicked(event, tileId, regionId){

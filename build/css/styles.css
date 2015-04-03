@@ -200,7 +200,8 @@ th {
   stroke-opacity: 0;
 }
 .nub.selected {
-  display: none;
+  fill-opacity: 0;
+  pointer-events: none;
 }
 .nub.error .outline {
   animation: animationFrames ease 1s;
