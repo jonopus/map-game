@@ -11,15 +11,26 @@
 	.outline{
 		pointer-events: none;
 		fill: #eee;
-		stroke: red;
-		stroke-width: 3px;
-		stroke-opacity: 0;
 	}
 	&.selected {
 		fill-opacity: 0;
 		pointer-events: none;
 	}
+	cursor: pointer;
+}
+
+
+.error {
+	fill-opacity: 0;
+	.outline{
+		pointer-events: none;
+		fill: #eee;
+		stroke: red;
+		stroke-width: 5px;
+		stroke-opacity: 0;
+	}
 	&.error {
+		z-index: 999;
 		.outline{
 			animation: animationFrames ease 1s;
 			animation-iteration-count: 1;
@@ -33,7 +44,6 @@
 			-ms-animation-iteration-count: 1;
 		}
 	}
-	cursor: pointer;
 }
 
 .tile-type{

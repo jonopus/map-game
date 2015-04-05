@@ -9535,42 +9535,33 @@ function Controller() {
 	game = new Game();
 	renderer = new Renderer();
 
-	game.addTile(new Tile(1, 0, Ports.O3, Orientation.XP));
-	game.addTile(new Tile(0, 1, Ports.O2, Orientation.XN));
-	game.addTile(new Tile(-1, 1, Ports.O1, Orientation.ZP));
-	game.addTile(new Tile(-1, 0, Ports.C3, Orientation.XN));
-	game.addTile(new Tile(0, -1, Ports.C2, Orientation.YN));
-	game.addTile(new Tile(1, -1, Ports.C1, Orientation.XN));
+	game.addTiles(Tile.getStartTiles());
 
 	game.addPlayer(new Player('red'));
 	game.addPlayer(new Player('blue'));
 	game.nextPlayer();
 
-	$('body').on('MARK_CLICKED', handleRegionClicked);
+	renderer.renderTileTypes(Tile.getTileTypes());
+	renderer.selectTileType(tileTypeId)
+	
+	$('body').on('NUB_MOUSEOVER', handleNubMouseover);
+	$('body').on('NUB_MOUSEOUT', handleNubMouseout);
 	$('body').on('NUB_CLICKED', handleNubClicked);
 	$('body').on('TILE_TYPE_CLICKED', handleTileTypeClicked);
 	$('body').on('ROTATE_CLICKED', handleRotateClicked);
-	$('body').on('NUB_MOUSEOVER', handleNubMouseover);
-	$('body').on('NUB_MOUSEOUT', handleNubMouseout);
+	$('body').on('MARK_CLICKED', handleRegionClicked);
 	
-	update();
-
 	renderGame();
-
-	renderer.renderTileTypes(Tile.getTileTypes());
-	renderer.selectTileType(tileTypeId)
 	renderer.renderNubs(Grid.getNubs(tiles, regions));
 }
 
-function update(tile){
+function renderGame(tile, liberties, captures){
 	tiles = game.getTiles().concat(tile ? [tile] : []);
 	claims = game.getClaims();
 	player = game.getCurrentPlayer();
 	regions = Grid.getRegions(tiles);
+	
 	regions = game.applyClaims(regions, claims);
-}
-
-function renderGame(liberties, captures){
 	renderer.render(tiles);
 	renderer.highlight(liberties || [], 'liberties');
 	renderer.highlight(captures || [], 'captures');
@@ -9578,113 +9569,122 @@ function renderGame(liberties, captures){
 	$.each(game.getPlayers(), function(i, player) {
 		renderer.highlight(player.getClaims(), player.color);
 	});
+
+	tile && renderer.selectNub(tile.x, tile.y);
+	!tile && renderer.selectNub();
+}
+
+function handleNubMouseover(event, x, y, o){
+	
+	previewTile = new Tile(x, y, Ports[tileTypeId], Orientation.get(o));
+	previewTile.orientation = Grid.getValidOrientations(tiles, regions, previewTile)[0] || previewTile.orientation;
+
+	if(previewTile.orientation){
+		renderGame();
+		renderer.renderPreviewTile(previewTile);
+	}
+}
+
+function handleNubMouseout(event, x, y, o){
+	renderer.removePreviewTile(previewTile);
+	
+	var tile = game.getNextTile();
+	renderGame(tile);
+}
+
+function validate(tile){
+	if(!tile) return false;
+
+	var misMatches = Grid.getMisMatches(tiles, regions, tile)
+	var validOrientations = Grid.getValidOrientations(tiles, regions, tile)
+		
+	if(misMatches.length === 0 && validOrientations.length){
+		return true;
+	}else{
+		return false;
+	}
 }
 
 function handleNubClicked(event, x, y, o){
-	var misMatches = Grid.getMisMatches(tiles, regions, previewTile)
-	if(misMatches.length === 0){
-		game.setNextTile(previewTile);
-		renderer.selectNub(previewTile.x, previewTile.y);
-		update();
-		renderGame();
+	var tile = previewTile.clone();
+
+	if(validate(tile)){
+		game.setNextTile(tile);
+		renderGame(tile);
 	}else{
-		renderer.highlightNub(x, y);
+		renderer.showError(x, y, Orientation.get(o));
 	}
+
 }
 
 function handleTileTypeClicked(event, id){
 	renderer.selectTileType(tileTypeId = id)
 
-	update();
+	var tile = game.getNextTile();
+	if(!tile) return;
 
-	if(previewTile){
+	tile.ports = Ports[tileTypeId];
+	tile.orientation = Grid.getValidOrientations(tiles, regions, tile)[0] || tile.orientation
 
-		previewTile.ports = Ports[tileTypeId];
-
-		var validOrientations = Grid.getValidOrientations(tiles, regions, previewTile)
-		previewTile.orientation = validOrientations[0] || previewTile.orientation;
-		var misMatches = Grid.getMisMatches(tiles, regions, previewTile)
-
-		if(misMatches.length === 0 && validOrientations.length){
-			game.setNextTile(previewTile);
-			update();
-			renderGame();
-			renderer.renderPreviewTile(previewTile);
-		}else{
-			renderer.selectNub(previewTile.x, previewTile.y);
-			renderer.highlightNub(previewTile.x, previewTile.y);
-			renderer.renderPreviewTile();
-		}
+	if(validate(tile)){
+		game.setNextTile(tile);
+		renderGame(tile);
+	}else{
+		renderer.showError(tile.x, tile.y, tile.orientation);
+		renderGame(game.getNextTile());
 	}
 }
 
 function handleRotateClicked(event, id){
-	if(!previewTile) return;
-
-	previewTile.orientation = previewTile.orientation.getAt(2);
-	previewTile.orientation = Grid.getValidOrientations(tiles, regions, previewTile)[0] || previewTile.orientation;
-	renderer.renderPreviewTile(previewTile);
-}
-
-function handleNubMouseout(event, x, y, o){
+	
 	var tile = game.getNextTile();
-	if(tile){
-		renderer.renderPreviewTile(tile, true);
-		renderer.selectNub(tile.x, tile.y);
+	if(!tile) return;
+
+	tile.orientation = tile.orientation.getAt(2);
+	tile.orientation = Grid.getValidOrientations(tiles, regions, tile)[0] || tile.orientation
+	
+	var validOrientations = Grid.getValidOrientations(tiles, regions, tile);
+
+	if(validOrientations.length > 1){
+		game.setNextTile(tile);
+		renderGame(tile);
 	}else{
-		renderer.renderPreviewTile();
-		renderer.selectNub();
-	}
-}
-
-function handleNubMouseover(event, x, y, o){
-	update();
-
-	console.log('previewTile', previewTile);
-
-	previewTile.x = x;
-	previewTile.y = y;
-	previewTile.ports = Ports[tileTypeId];
-	previewTile.orientation = Orientation.get(o);
-
-	previewTile.orientation = Grid.getValidOrientations(tiles, regions, previewTile)[0] || previewTile.orientation;
-	if(previewTile.orientation){
-		renderer.renderPreviewTile(previewTile);
-		renderer.selectNub();
-
-		renderGame();
+		renderer.showError(tile.x, tile.y, tile.orientation);
+		renderGame(game.getNextTile());
 	}
 }
 
 function handleRegionClicked(event, tileId, regionId){
 	
-	if(!game.getNextTile()){
+	var tile = game.getNextTile();
+	
+	if(!tile){
 		return;
 	}
 
-	update(game.getNextTile());
-	
+	renderGame(tile, liberties, captures);
+
 	var region = Grid.getRegion(regions, tileId, regionId);
 	var liberties = Grid.getLiberties(tiles, regions, region, player.id);
 	var captures = Grid.getCaptures(tiles, regions, region, player.id);
 
 	if(liberties.length || captures.length) {
 		game.addNextTile();
-		previewTile = null;
+		previewTile = new Tile();
 		game.removeClaims(captures);
 		player.addClaim(region);
 		claims.push(region);
+		
 		game.nextPlayer();
-
 		renderer.renderNubs(Grid.getNubs(tiles, regions));
+		renderer.renderPreviewTile();
+	}else{
+		var regionTile = game.getTile(tileId)
+		renderer.showError(regionTile.x, regionTile.y, regionTile.orientation);
 	}
 
-	renderGame(liberties, captures);
-	
+	renderGame(tile, liberties, captures);
 }
-
-
-
 },{"../model/Game.js":6,"../model/Grid.js":7,"../model/Orientation.js":8,"../model/Player.js":9,"../model/Ports.js":10,"../model/Tile.js":11,"../view/Renderer.js":12}],4:[function(require,module,exports){
 if (!String.prototype.format) {
 	String.prototype.format = function() {
@@ -9892,11 +9892,11 @@ function Game() {
 }
 
 Game.prototype.setNextTile = function(tile){
-	nextTile = tile.clone()
+	nextTile = tile
 }
 
 Game.prototype.getNextTile = function(){
-	return nextTile ? nextTile.clone() : undefined;
+	return nextTile;
 }
 
 Game.prototype.addNextTile = function(){
@@ -9908,6 +9908,16 @@ Game.prototype.addTile = function(tile){
 	if(this.tiles.indexOf(tile) < 0){
 		this.tiles.push(tile);
 	}
+}
+
+Game.prototype.addTiles = function(tiles){
+	this.tiles = this.tiles.concat(tiles);
+}
+
+Game.prototype.getTile = function(id){
+	return $.grep(this.tiles, function(tile){
+		return tile.id === id;
+	})[0];
 }
 
 Game.prototype.getTiles = function(usePreview){
@@ -10013,7 +10023,8 @@ Grid.getTileAt = function(tiles, vector){
 Grid.getValidOrientations = function(tiles, regions, tile){
 	var tries = 0;
 	var misMatches;
-	var testTile = new Tile(tile.x, tile.y, tile.ports, tile.orientation);
+	var testTile = tile.clone();
+	var orientation;
 	var validOrientations = [];
 
 	while(
@@ -10552,6 +10563,19 @@ Tile.getTileTypes = function(){
 	return Tile.TILE_TYPES;
 }
 
+Tile.START_TILES = [
+	new Tile(1, 0, Ports.O3, Orientation.XP),
+	new Tile(0, 1, Ports.O3, Orientation.XN),
+	new Tile(-1, 1, Ports.O3, Orientation.ZP),
+	new Tile(-1, 0, Ports.O3, Orientation.XN),
+	new Tile(0, -1, Ports.O3, Orientation.YN),
+	new Tile(1, -1, Ports.O3, Orientation.XN)
+]
+
+Tile.getStartTiles = function(){
+	return Tile.START_TILES;
+}
+
 },{"./Orientation.js":8,"./Ports.js":10}],12:[function(require,module,exports){
 var d3 = require('d3');
 var Orientation = require('../model/Orientation.js');
@@ -10561,6 +10585,7 @@ var svg;
 var mainGroup;
 var tileTypesGroup;
 var nubsGroup;
+var errorsGroup;
 var tilesGroup;
 var tilePreviewGroup;
 var rotateButton;
@@ -10633,6 +10658,8 @@ function Renderer() {
 	.classed('tiles-group', true);
 	nubsGroup = mainGroup.append('g')
 	.classed('nubs-group', true);
+	errorsGroup = mainGroup.append('g')
+	.classed('errors-group', true);
 	tilePreviewGroup = mainGroup.append('g')
 	.classed('preview-group', true);
 
@@ -10776,14 +10803,29 @@ Renderer.prototype.selectNub = function(x, y){
 	d3.select(selector).classed(className, true);
 }
 
-Renderer.prototype.highlightNub = function(x, y){
-	var className = 'error';
-	d3.select('.nub.'+className).classed(className, false);
-	
-	var selector = '.nub[data-x="{0}"][data-y="{1}"]'.format(x, y);
-	d3.select(selector).classed(className, true);
+Renderer.prototype.showError = function(x, y, o){
+	var errorGroup = nubsGroup.append('g')
+	.classed('error', true)
+	.attr('transform',
+		'translate({0},{1}) rotate({2})'
+		.format(
+			(x*scale*d2) + (y*scale*d2*.5),
+			(y*scale*1.5),
+			o.angle
+		)
+	);
 
-	setTimeout(this.highlightNub, 1000);
+	errorGroup.append('path')
+	.classed('outline', true)
+	.attr('d', roundedTrianglePath);
+
+	setTimeout(function(){
+		errorGroup.remove()
+	}, 1000);
+}
+
+Renderer.prototype.removePreviewTile = function(){
+	previewTile.remove();
 }
 
 Renderer.prototype.renderPreviewTile = function(tile, useTilesGroup){

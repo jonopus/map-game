@@ -40,7 +40,8 @@ Grid.getTileAt = function(tiles, vector){
 Grid.getValidOrientations = function(tiles, regions, tile){
 	var tries = 0;
 	var misMatches;
-	var testTile = new Tile(tile.x, tile.y, tile.ports, tile.orientation);
+	var testTile = tile.clone();
+	var orientation;
 	var validOrientations = [];
 
 	while(

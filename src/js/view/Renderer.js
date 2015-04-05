@@ -6,6 +6,7 @@ var svg;
 var mainGroup;
 var tileTypesGroup;
 var nubsGroup;
+var errorsGroup;
 var tilesGroup;
 var tilePreviewGroup;
 var rotateButton;
@@ -78,6 +79,8 @@ function Renderer() {
 	.classed('tiles-group', true);
 	nubsGroup = mainGroup.append('g')
 	.classed('nubs-group', true);
+	errorsGroup = mainGroup.append('g')
+	.classed('errors-group', true);
 	tilePreviewGroup = mainGroup.append('g')
 	.classed('preview-group', true);
 
@@ -221,14 +224,29 @@ Renderer.prototype.selectNub = function(x, y){
 	d3.select(selector).classed(className, true);
 }
 
-Renderer.prototype.highlightNub = function(x, y){
-	var className = 'error';
-	d3.select('.nub.'+className).classed(className, false);
-	
-	var selector = '.nub[data-x="{0}"][data-y="{1}"]'.format(x, y);
-	d3.select(selector).classed(className, true);
+Renderer.prototype.showError = function(x, y, o){
+	var errorGroup = nubsGroup.append('g')
+	.classed('error', true)
+	.attr('transform',
+		'translate({0},{1}) rotate({2})'
+		.format(
+			(x*scale*d2) + (y*scale*d2*.5),
+			(y*scale*1.5),
+			o.angle
+		)
+	);
 
-	setTimeout(this.highlightNub, 1000);
+	errorGroup.append('path')
+	.classed('outline', true)
+	.attr('d', roundedTrianglePath);
+
+	setTimeout(function(){
+		errorGroup.remove()
+	}, 1000);
+}
+
+Renderer.prototype.removePreviewTile = function(){
+	previewTile.remove();
 }
 
 Renderer.prototype.renderPreviewTile = function(tile, useTilesGroup){

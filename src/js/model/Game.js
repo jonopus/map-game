@@ -11,11 +11,11 @@ function Game() {
 }
 
 Game.prototype.setNextTile = function(tile){
-	nextTile = tile.clone()
+	nextTile = tile
 }
 
 Game.prototype.getNextTile = function(){
-	return nextTile ? nextTile.clone() : undefined;
+	return nextTile;
 }
 
 Game.prototype.addNextTile = function(){
@@ -27,6 +27,16 @@ Game.prototype.addTile = function(tile){
 	if(this.tiles.indexOf(tile) < 0){
 		this.tiles.push(tile);
 	}
+}
+
+Game.prototype.addTiles = function(tiles){
+	this.tiles = this.tiles.concat(tiles);
+}
+
+Game.prototype.getTile = function(id){
+	return $.grep(this.tiles, function(tile){
+		return tile.id === id;
+	})[0];
 }
 
 Game.prototype.getTiles = function(usePreview){

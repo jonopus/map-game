@@ -48,3 +48,16 @@ Tile.TILE_TYPES = [
 Tile.getTileTypes = function(){
 	return Tile.TILE_TYPES;
 }
+
+Tile.START_TILES = [
+	new Tile(1, 0, Ports.O3, Orientation.XP),
+	new Tile(0, 1, Ports.O3, Orientation.XN),
+	new Tile(-1, 1, Ports.O3, Orientation.ZP),
+	new Tile(-1, 0, Ports.O3, Orientation.XN),
+	new Tile(0, -1, Ports.O3, Orientation.YN),
+	new Tile(1, -1, Ports.O3, Orientation.XN)
+]
+
+Tile.getStartTiles = function(){
+	return Tile.START_TILES;
+}

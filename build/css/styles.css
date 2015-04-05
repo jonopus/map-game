@@ -195,15 +195,25 @@ th {
 .nub .outline {
   pointer-events: none;
   fill: #eee;
-  stroke: red;
-  stroke-width: 3px;
-  stroke-opacity: 0;
 }
 .nub.selected {
   fill-opacity: 0;
   pointer-events: none;
 }
-.nub.error .outline {
+.error {
+  fill-opacity: 0;
+}
+.error .outline {
+  pointer-events: none;
+  fill: #eee;
+  stroke: red;
+  stroke-width: 5px;
+  stroke-opacity: 0;
+}
+.error.error {
+  z-index: 999;
+}
+.error.error .outline {
   animation: animationFrames ease 1s;
   animation-iteration-count: 1;
   -webkit-animation: animationFrames ease 1s;
