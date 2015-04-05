@@ -9,22 +9,22 @@ function Orientation(index, angle, vector, offset){
 Orientation.XP = new Orientation(0, 0,		{x:1,	y:0},	{x:0,	y:0});
 Orientation.YP = new Orientation(1, 60,		{x:0,	y:1},	{x:0,	y:0});
 Orientation.ZP = new Orientation(2, 120,	{x:-1,	y:1},	{x:0,	y:1});
-Orientation.XM = new Orientation(3, 180,	{x:-1,	y:0},	{x:-1,	y:1});
-Orientation.YM = new Orientation(4, 210,	{x:0,	y:-1},	{x:-1,	y:1});
-Orientation.ZM = new Orientation(5, 270,	{x:1,	y:-1},	{x:-1,	y:0});
+Orientation.XN = new Orientation(3, 180,	{x:-1,	y:0},	{x:-1,	y:1});
+Orientation.YN = new Orientation(4, 240,	{x:0,	y:-1},	{x:-1,	y:1});
+Orientation.ZN = new Orientation(5, 300,	{x:1,	y:-1},	{x:-1,	y:0});
 
 var orientations = [
 	Orientation.XP,
 	Orientation.YP,
 	Orientation.ZP,
-	Orientation.XM,
-	Orientation.YM,
-	Orientation.ZM
+	Orientation.XN,
+	Orientation.YN,
+	Orientation.ZN
 ]
 
 Orientation.get = get;
-function get(){
-	return orientations;
+function get(index){
+	return orientations[index] || orientations;
 }
 
 Orientation.prototype.getAt = getAt;
@@ -32,20 +32,18 @@ function getAt(delta){
 	return orientations[(orientations.length + this.index + delta)%orientations.length]
 }
 
-Orientation.getOpposite = getOpposite;
-function getOpposite(orientation){
+Orientation.getOpposite = function(orientation){
 	switch(orientation){
-		case Orientation.XP: return Orientation.XM;
-		case Orientation.YP: return Orientation.YM;
-		case Orientation.ZP: return Orientation.ZM;
-		case Orientation.XM: return Orientation.XP;
-		case Orientation.YM: return Orientation.YP;
-		case Orientation.ZM: return Orientation.ZP;
+		case Orientation.XP: return Orientation.XN;
+		case Orientation.YP: return Orientation.YN;
+		case Orientation.ZP: return Orientation.ZN;
+		case Orientation.XN: return Orientation.XP;
+		case Orientation.YN: return Orientation.YP;
+		case Orientation.ZN: return Orientation.ZP;
 	}
 }
 
-Orientation.rotateArray = rotateArray;
-function rotateArray(array, delta){
+Orientation.rotateArray = function(array, delta){
 	var first = array.slice(0);
 	var last = first.splice(-delta, delta);
 	return last.concat(first);
@@ -78,17 +76,17 @@ function rotatePoint(point, orientation){
 			_y = x;
 			_z = y;
 			break;
-		case Orientation.XM:
+		case Orientation.XN:
 			_x = -x;
 			_y = -y;
 			_z = -z;
 			break;
-		case Orientation.YM:
+		case Orientation.YN:
 			_x = y;
 			_y = z;
 			_z = x;
 			break;
-		case Orientation.ZM:
+		case Orientation.ZN:
 			_x = -z;
 			_y = -x;
 			_z = -y;

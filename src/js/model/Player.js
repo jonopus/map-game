@@ -1,34 +1,35 @@
+var count = 0;
+
 module.exports = Player;
-function Player(id, color) {
-	this.id = id;
+function Player(color) {
+	this.id = ++count;
 	this.color = color;
 	this.claims = [];
 }
 
-Player.prototype.removeClaim = removeClaim;
-function removeClaim(tileId, regionId){
+Player.prototype.removeClaim = function(tileId, regionId){
 	this.claims = $.grep(this.claims, function(item){
 		return !(item.tileId === tileId && item.regionId === regionId);
 	})
 }
 
-Player.prototype.claim = claim;
-function claim(tileId, regionId){
+Player.prototype.addClaim = function(region){
 	
-	var claim = {tileId:tileId, regionId:regionId, player:this};
-
 	if($.grep(this.claims, function(item){
-		return item.tileId === claim.tileId && item.regionId === claim.regionId;
+		return item.tileId === region.tileId && item.regionId === region.regionId;
 	}).length){
 		return false;
 	}
 
-	this.claims.push(claim);
+	this.claims.push({
+		playerId: this.id,
+		tileId: region.tileId,
+		regionId: region.regionId
+	});
 
-	return claim;
+	return true;
 }
 
-Player.prototype.getClaims = getClaims;
-function getClaims(){
+Player.prototype.getClaims = function(){
 	return this.claims;
 }

@@ -1,129 +1,63 @@
-var Region = require('./Region.js');
+var Ports = require('./Ports.js');
 var Orientation = require('./Orientation.js');
 
 var tileCount = 0;
-var claimedRegions = [];
 
 module.exports = Tile;
-function Tile(regions, x, y, orientation, name) {
+function Tile(x, y, ports, orientation) {
+	this.id = ++tileCount;
 	this.x = x || 0;
 	this.y = y || 0;
-
-	this.name = name || '';
-	this.id = ++tileCount;
+	this.ports = ports || Ports.O3;
 	this.orientation = orientation || Orientation.XP;
-	
-	this.regions = regions;
 }
 
-Tile.prototype.getRegions = getRegions;
-function getRegions(){
+Tile.prototype.clone = function(){
+	return new Tile(this.x, this.y, this.ports, this.orientation);
+}
+
+Tile.prototype.getPorts = function(){
+	return new Ports(
+		this.ports.id,
+		Orientation.rotateArray(
+			this.ports.ports,
+			this.orientation.index*3
+		)
+	);
+}
+
+Tile.prototype.getPortVectors = function(regionId){
+	var indices = this.getPorts().getIndices(regionId);
+	var vectors = Ports.getVectors(indices);
 	var tile = this;
-
-	var regions = $.map(this.regions, function(region, i){
-		var point = Orientation.rotatePoint({x:region.x, y:region.y}, tile.orientation);
-		
-		region = jQuery.extend({}, region);
-		region.tileId = tile.id
-		region.l = Orientation.rotateArray(region.l, tile.orientation.index)
-		region.x = point.x + tile.orientation.offset.x;
-		region.y = point.y + tile.orientation.offset.y;
-
-		
-		return region;
-	})
-
-	$.each(regions, function(i, region){
-		var regionSpace = Region.getRegionSpace(tile)
-		region.x = regionSpace.x + region.x
-		region.y = regionSpace.y + region.y
-	})
-
-	return regions;
+	return $.map(vectors, function(vector){
+		vector.x = tile.x + vector.o.vector.x
+		vector.y = tile.y + vector.o.vector.y
+		return vector;
+	});
 }
 
-Tile.prototype.getRegion = getRegion;
-function getRegion(regionId){
-	return $.grep(this.regions, function(region, i){
-		return region.id === parseInt(regionId)
-	})[0];
+Tile.TILE_TYPES = [
+	new Tile(0, 0, Ports.O3),
+	new Tile(0, 0, Ports.O2),
+	new Tile(0, 0, Ports.O1),
+	new Tile(0, 0, Ports.C3),
+	new Tile(0, 0, Ports.C2),
+	new Tile(0, 0, Ports.C1)
+]
+Tile.getTileTypes = function(){
+	return Tile.TILE_TYPES;
 }
-
-var d2 = Math.sqrt(3);
-var a = d2*3.5
-var o = 1.5
-var h = Math.sqrt((a*a) + (o*o));
-var rotate = 90 + Math.atan(a/-o) * (180/Math.PI);
-var scale = h/(d2*4)
-var w = 4
-var h = 3 // triangle size
 
 Tile.START_TILES = [
-	new Tile(Region.O3, -1, -1, Orientation.YP, 'O3'),
-	new Tile(Region.O3, -1, 0, null, 'O3'),
-	new Tile(Region.O3, -1, 0, Orientation.YP, 'O3'),
-	new Tile(Region.O3, 0, -1, null, 'O3'),
-	new Tile(Region.O3, 0, -1, Orientation.YP, 'O3'),
-	new Tile(Region.O3, 0, 0, null, 'O3')
+	new Tile(1, 0, Ports.O3, Orientation.XP),
+	new Tile(0, 1, Ports.O3, Orientation.XN),
+	new Tile(-1, 1, Ports.O3, Orientation.ZP),
+	new Tile(-1, 0, Ports.O3, Orientation.XN),
+	new Tile(0, -1, Ports.O3, Orientation.YN),
+	new Tile(1, -1, Ports.O3, Orientation.XN)
 ]
+
 Tile.getStartTiles = function(){
 	return Tile.START_TILES;
-}
-Tile.TILES = [
-	new Tile(Region.O3, null, null, null, 'O3'),
-	new Tile(Region.O2, null, null, null, 'O2'),
-	new Tile(Region.O1, null, null, null, 'O1'),
-	new Tile(Region.C3, null, null, null, 'C3'),
-	new Tile(Region.C2, null, null, null, 'C2'),
-	new Tile(Region.C1, null, null, null, 'C1')
-]
-Tile.getTiles = function(){
-	return Tile.TILES;
-}
-Tile.getTileSpace = function(region){
-	var x = region.x;
-	var y = region.y;
-
-	var _x;
-	var _y;
-
-	_x = Math.floor(
-		(x-1)	/w
-	)
-	_y = Math.floor(
-		(
-			y+_x
-		)	/h
-	)
-	_x = Math.floor(
-		(
-			x-1-_y
-		)	/w
-	)
-	_y = Math.floor(
-		(
-			y+_x
-		)	/h
-	)
-	_x = Math.floor(
-		(
-			x-1-_y
-		)	/w
-	)
-	_y = Math.floor(
-		(
-			y+_x
-		)	/h
-	)
-
-	var offsetX = ((_x)*4)+_y;
-	var offsetY = ((_y)*3)-_x;
-
-	var o = x-offsetX-1 + y-offsetY > 2;
-	
-	return {
-		x:_x,
-		y:_y,
-		o:o
-	}
 }

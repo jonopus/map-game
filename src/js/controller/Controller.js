@@ -1,244 +1,174 @@
-var Region = require('../model/Region.js');
+var Game = require('../model/Game.js');
+var Grid = require('../model/Grid.js');
+var Ports = require('../model/Ports.js');
+var Renderer = require('../view/Renderer.js');
 var Orientation = require('../model/Orientation.js');
 var Tile = require('../model/Tile.js');
 var Player = require('../model/Player.js');
 
 var game;
 var renderer;
-var misMatched;
-var nextTileType = 'O3';
-var nextOrientation = Orientation.XP;
 
+var tiles;
+var claims;
+var player;
+var regions;
+var nubs;
+var tileTypeId = 'O3';
+var previewTile = new Tile();
 
 module.exports = Controller;
-function Controller(newGame, newRenderer) {
-	game = newGame;
-	renderer = newRenderer;
+function Controller() {
+	game = new Game();
+	renderer = new Renderer();
 
-	$('body').on('NUB_CLICKED', $.proxy(this.handleNubClicked, this));
-	$('body').on('NUB_MOUSEOVER', $.proxy(this.handleNubMouseover, this));
-	$('body').on('NUB_MOUSEOUT', $.proxy(this.handleNubMouseout, this));
-	
-	$('body').on('REGION_CLICKED', $.proxy(this.handleRegionClicked, this));
-	$('body').on('REGION_MOUSEOVER', $.proxy(this.handleRegionMouseover, this));
-	$('body').on('REGION_MOUSEOUT', $.proxy(this.handleRegionMouseout, this));
-	
-	$('body').on('TILE_TYPE_CLICKED', $.proxy(this.handleTileTypeClicked, this));
-	$('body').on('ROTATE_CLICKED', $.proxy(this.handleRotateClicked, this));
-
-
-	game.addPlayer(new Player('Red', 'red'));
-	game.addPlayer(new Player('Blue', 'blue'));
 	game.addTiles(Tile.getStartTiles());
 
-	game.nextPlayer();	
-	renderer.renderTileTypes(Tile.getTiles());
-	renderer.setTilePreview('O3');
+	game.addPlayer(new Player('red'));
+	game.addPlayer(new Player('blue'));
+	game.nextPlayer();
+
+	renderer.renderTileTypes(Tile.getTileTypes());
+	renderer.selectTileType(tileTypeId)
 	
-	renderer.renderTiles(game.getTiles(true));
-	renderer.renderRegions(game.getRegions(true));
-	renderer.renderNubTiles(game.getNubTiles());
-}
-
-Controller.prototype.handleNubMouseover = handleNubMouseover;
-function handleNubMouseover(event, x, y, o) {
+	$('body').on('NUB_MOUSEOVER', handleNubMouseover);
+	$('body').on('NUB_MOUSEOUT', handleNubMouseout);
+	$('body').on('NUB_CLICKED', handleNubClicked);
+	$('body').on('TILE_TYPE_CLICKED', handleTileTypeClicked);
+	$('body').on('ROTATE_CLICKED', handleRotateClicked);
+	$('body').on('MARK_CLICKED', handleRegionClicked);
 	
-	var regions = game.getRegions();
+	renderGame();
+	renderer.renderNubs(Grid.getNubs(tiles, regions));
+}
 
-	var nubIsOdd = !!(o%2);
-	var nextOrientationIsOdd = !!(nextOrientation.index%2);
+function renderGame(tile, liberties, captures){
+	tiles = game.getTiles().concat(tile ? [tile] : []);
+	claims = game.getClaims();
+	player = game.getCurrentPlayer();
+	regions = Grid.getRegions(tiles);
+	
+	regions = game.applyClaims(regions, claims);
+	renderer.render(tiles);
+	renderer.highlight(liberties || [], 'liberties');
+	renderer.highlight(captures || [], 'captures');
 
-	if(nubIsOdd !== nextOrientationIsOdd){
-		nextOrientation = nextOrientation.getAt( nubIsOdd ? 1 : -1)
+	$.each(game.getPlayers(), function(i, player) {
+		renderer.highlight(player.getClaims(), player.color);
+	});
+
+	tile && renderer.selectNub(tile.x, tile.y);
+	!tile && renderer.selectNub();
+}
+
+function handleNubMouseover(event, x, y, o){
+	
+	previewTile = new Tile(x, y, Ports[tileTypeId], Orientation.get(o));
+	previewTile.orientation = Grid.getValidOrientations(tiles, regions, previewTile)[0] || previewTile.orientation;
+
+	if(previewTile.orientation){
+		renderGame();
+		renderer.renderPreviewTile(previewTile);
 	}
-
-	var tile;
-	var tries = 0;
-	var orientation = nextOrientation;
-	var previewMisMatched;
-
-	while(
-		(!tile || !previewMisMatched) ||
-		(++tries <= 3 && previewMisMatched.length !== 0)
-	){
-		tile && (previewMisMatched = game.getMisMatched(regions, tile));
-
-		if(previewMisMatched && previewMisMatched.length){
-			orientation = orientation.getAt(2);
-		}
-		tile = getNextTile(x, y, orientation);
-	}
-
-	nextOrientation = orientation;
-
-	game.addPreviewTile(tile);
-
-	renderer.renderTiles(game.getTiles(true));
-	renderer.renderRegions(game.getRegions(true));
 }
 
-Controller.prototype.handleNubMouseout = handleNubMouseout;
-function handleNubMouseout(event, x, y, o) {
-	renderer.renderTiles(game.getTiles());
-	renderer.renderRegions(game.getRegions());
-	renderer.renderNubTiles(game.getNubTiles());
-}
-
-function getNextTile(x, y, orientation) {
-	return new Tile(Region[nextTileType], x, y, orientation, nextTileType)
-}
-
-Controller.prototype.handleTileTypeClicked = handleTileTypeClicked;
-function handleTileTypeClicked(event, tileTypeClicked) {
-	nextTileType = tileTypeClicked
-	renderer.setTilePreview(tileTypeClicked);
+function handleNubMouseout(event, x, y, o){
+	renderer.removePreviewTile(previewTile);
 	
 	var tile = game.getNextTile();
-	if(tile){
-		tile = getNextTile(tile.x, tile.y, tile.orientation);
-		game.addNextTile(tile);
-	}
-
-	rotate(0);
+	renderGame(tile);
 }
 
-Controller.prototype.handleNubClicked = handleNubClicked;
-function handleNubClicked(event, x, y, o) {
-	var regions = game.getRegions();
+function validate(tile){
+	if(!tile) return false;
 
-	var tile = getNextTile(x, y, nextOrientation);
-	
-	misMatched = game.getMisMatched(regions, tile)
-
-	if(misMatched.length){
-		nextOrientation = nextOrientation.getAt(2);
-		tile = getNextTile(x, y, nextOrientation);
-	}
-
-	game.addNextTile(tile);
-
-	renderer.renderTiles(game.getTiles());
-	renderer.renderRegions(game.getRegions());
-	renderer.renderNubTiles(game.getNubTiles());
-}
-
-Controller.prototype.handleRotateClicked = handleRotateClicked;
-function handleRotateClicked(event, clockwise) {
-	rotate(2, clockwise);
-}
-
-function rotate(delta, clockwise){
-	clockwise = clockwise == undefined ? true : clockwise;
-
-	var tile = game.getNextTile();
-
-	if(tile){
+	var misMatches = Grid.getMisMatches(tiles, regions, tile)
+	var validOrientations = Grid.getValidOrientations(tiles, regions, tile)
 		
-		var regions = game.getRegions(true);
-		var tries = 0;
-		var orientation = tile.orientation.getAt(clockwise ? -delta : delta);
-		misMatched = undefined;
-
-		tile = getNextTile(tile.x, tile.y, orientation);
-
-		while(
-			(!tile || !misMatched) ||
-			(++tries <= 3 && misMatched.length !== 0)
-		){
-			tile && (misMatched = game.getMisMatched(regions, tile));
-
-			if(misMatched && misMatched.length){
-				orientation = orientation.getAt(clockwise ? -2 : 2);
-			}
-			tile = getNextTile(tile.x, tile.y, orientation);
-		}
-
-		nextOrientation = orientation;
-
-		game.addNextTile(tile);
-
-		renderer.renderTiles(game.getTiles());
-		renderer.renderRegions(game.getRegions());
-		renderer.renderNubTiles(game.getNubTiles());
+	if(misMatches.length === 0 && validOrientations.length){
+		return true;
+	}else{
+		return false;
 	}
 }
 
-Controller.prototype.handleRegionClicked = handleRegionClicked;
-function handleRegionClicked(event, tileId, regionId) {
+function handleNubClicked(event, x, y, o){
+	var tile = previewTile.clone();
 
-	if(!game.getNextTile()){
-		return;
+	if(validate(tile)){
+		game.setNextTile(tile);
+		renderGame(tile);
+	}else{
+		renderer.showError(x, y, Orientation.get(o));
 	}
 
-	if(misMatched  && misMatched.length){
-		return;
+}
+
+function handleTileTypeClicked(event, id){
+	renderer.selectTileType(tileTypeId = id)
+
+	var tile = game.getNextTile();
+	if(!tile) return;
+
+	tile.ports = Ports[tileTypeId];
+	tile.orientation = Grid.getValidOrientations(tiles, regions, tile)[0] || tile.orientation
+
+	if(validate(tile)){
+		game.setNextTile(tile);
+		renderGame(tile);
+	}else{
+		renderer.showError(tile.x, tile.y, tile.orientation);
+		renderGame(game.getNextTile());
 	}
+}
 
-	var regions = game.getRegions();
-
-	var player = game.currentPlayer;
-	var region = game.getRegion(regions, tileId, regionId);
-	var liberties = game.getLiberties(regions, player, region);
-	var captures = game.getCaptures(regions, player, region);
-
-	console.log(liberties.length, captures.length);
-
-	if(!region.claimed && (liberties.length || captures.length)){
-		var claim = player.claim(tileId, regionId);
-		game.removeClaims(captures);
-		game.applyClaims(regions, [claim]);
-		game.nextPlayer()
-	}
+function handleRotateClicked(event, id){
 	
-	renderer.renderTiles(game.getTiles());
-	renderer.renderRegions(game.getRegions());
-	renderer.renderNubTiles(game.getNubTiles());
-}
+	var tile = game.getNextTile();
+	if(!tile) return;
 
-Controller.prototype.handleRegionMouseover = handleRegionMouseover;
-function handleRegionMouseover(event, tileId, regionId) {
+	tile.orientation = tile.orientation.getAt(2);
+	tile.orientation = Grid.getValidOrientations(tiles, regions, tile)[0] || tile.orientation
+	
+	var validOrientations = Grid.getValidOrientations(tiles, regions, tile);
 
-	if(!game.getNextTile()){
-		return;
-	}
-
-	var regions = game.getRegions();
-
-	var region = game.getRegion(regions, tileId, regionId);
-
-	if(!region || !region.claimable) return;
-
-	var player = game.currentPlayer;
-	var liberties = game.getLiberties(regions, player, region);
-	var captures = game.getCaptures(regions, player, region);
-
-	if(region && !region.claimed){
-		renderer.highlight('capture', captures);
-		renderer.highlight('liberty', liberties);
+	if(validOrientations.length > 1){
+		game.setNextTile(tile);
+		renderGame(tile);
 	}else{
-		renderer.highlight('capture', []);
-		renderer.highlight('liberty', []);
-	}
-
-	if(region.claimed || (!liberties.length && !captures.length)){
-		renderer.highlight('illegal', [region]);
-	}else{
-		renderer.highlight('preview-claimed', [region]);
-		renderer.highlight('preview-' + player.color, [region]);
+		renderer.showError(tile.x, tile.y, tile.orientation);
+		renderGame(game.getNextTile());
 	}
 }
 
-Controller.prototype.handleRegionMouseout = handleRegionMouseout;
-function handleRegionMouseout(event, tileId, regionId) {
-
-	if(!game.getNextTile()){
+function handleRegionClicked(event, tileId, regionId){
+	
+	var tile = game.getNextTile();
+	
+	if(!tile){
 		return;
 	}
 
-	renderer.highlight('capture', []);
-	renderer.highlight('liberty', []);
-	renderer.highlight('illegal', []);
-	renderer.highlight('preview-claimed', []);
-	renderer.highlight('preview-red', []);
-	renderer.highlight('preview-blue', []);
+	renderGame(tile, liberties, captures);
+
+	var region = Grid.getRegion(regions, tileId, regionId);
+	var liberties = Grid.getLiberties(tiles, regions, region, player.id);
+	var captures = Grid.getCaptures(tiles, regions, region, player.id);
+
+	if(liberties.length || captures.length) {
+		game.addNextTile();
+		previewTile = new Tile();
+		game.removeClaims(captures);
+		player.addClaim(region);
+		claims.push(region);
+		
+		game.nextPlayer();
+		renderer.renderNubs(Grid.getNubs(tiles, regions));
+		renderer.renderPreviewTile();
+	}else{
+		var regionTile = game.getTile(tileId)
+		renderer.showError(regionTile.x, regionTile.y, regionTile.orientation);
+	}
+
+	renderGame(tile, liberties, captures);
 }
